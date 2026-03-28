@@ -1,0 +1,18 @@
+packages:
+  "framer-motion": "For page transitions and smooth micro-interactions"
+  "zustand": "For lightweight global state management (language selection)"
+  "date-fns": "For formatting connection timestamps nicely"
+  "lucide-react": "For beautiful icons"
+
+images:
+  - path: "artifacts/smart-farm/public/images/hero-bg.png"
+    description: "A beautiful, subtle, clean abstract background with soft green and earthy tones. Minimalist, premium, smooth gradients, no harsh lines."
+    aspect_ratio: "16:9"
+  - path: "artifacts/smart-farm/public/images/logo.png"
+    description: "A minimal, modern geometric leaf icon in a vibrant natural green color, transparent background."
+    aspect_ratio: "1:1"
+
+notes:
+  - using @workspace/api-client-react for data fetching
+  - applying SpeechSynthesis API for Text-To-Speech
+  - language toggle using zustand global store

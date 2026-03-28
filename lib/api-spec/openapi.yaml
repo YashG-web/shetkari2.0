@@ -1,15 +1,20 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Smart Farming API specification
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: sensor
+    description: IoT sensor data
+  - name: weather
+    description: Weather data and alerts
+  - name: recommendation
+    description: Crop recommendations
 paths:
   /healthz:
     get:
@@ -24,6 +29,49 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /sensor-data:
+    get:
+      operationId: getSensorData
+      tags: [sensor]
+      summary: Get latest IoT sensor readings
+      description: Returns simulated real-time sensor data
+      responses:
+        "200":
+          description: Sensor data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SensorData"
+
+  /weather:
+    get:
+      operationId: getWeather
+      tags: [weather]
+      summary: Get weather data and alerts
+      description: Returns current weather conditions and active alerts
+      responses:
+        "200":
+          description: Weather data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WeatherData"
+
+  /recommendation:
+    get:
+      operationId: getRecommendation
+      tags: [recommendation]
+      summary: Get crop recommendations
+      description: Returns crop health summary, issues, and suggested actions
+      responses:
+        "200":
+          description: Crop recommendation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecommendationData"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +82,127 @@ components:
       required:
         - status
 
+    SensorData:
+      type: object
+      properties:
+        soilMoisture:
+          type: number
+          description: Soil moisture percentage (0-100)
+        temperature:
+          type: number
+          description: Temperature in Celsius
+        humidity:
+          type: number
+          description: Humidity percentage (0-100)
+        nitrogen:
+          type: number
+          description: Nitrogen level (ppm)
+        phosphorus:
+          type: number
+          description: Phosphorus level (ppm)
+        potassium:
+          type: number
+          description: Potassium level (ppm)
+        pumpStatus:
+          type: string
+          enum: [ON, OFF]
+          description: Water pump status
+        connectedAt:
+          type: string
+          description: ISO timestamp of last connection
+      required:
+        - soilMoisture
+        - temperature
+        - humidity
+        - nitrogen
+        - phosphorus
+        - potassium
+        - pumpStatus
+        - connectedAt
+
+    WeatherData:
+      type: object
+      properties:
+        condition:
+          type: string
+          description: Short weather condition label
+        icon:
+          type: string
+          description: Weather icon identifier
+        description:
+          type: string
+          description: Weather description text
+        alerts:
+          type: array
+          items:
+            $ref: "#/components/schemas/WeatherAlert"
+      required:
+        - condition
+        - icon
+        - description
+        - alerts
+
+    WeatherAlert:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [heavy-rain, storm, drought, frost, normal]
+        message:
+          type: string
+        severity:
+          type: string
+          enum: [low, medium, high]
+      required:
+        - type
+        - message
+        - severity
+
+    RecommendationData:
+      type: object
+      properties:
+        cropCondition:
+          type: string
+          description: Overall crop condition summary
+        identifiedIssue:
+          type: string
+          description: Main issue identified
+        riskLevel:
+          type: string
+          enum: [low, medium, high]
+        suggestedActions:
+          type: array
+          items:
+            type: string
+          description: List of recommended actions
+        fertilizerRecommendation:
+          $ref: "#/components/schemas/FertilizerRecommendation"
+      required:
+        - cropCondition
+        - identifiedIssue
+        - riskLevel
+        - suggestedActions
+        - fertilizerRecommendation
+
+    FertilizerRecommendation:
+      type: object
+      properties:
+        name:
+          type: string
+        npkRatio:
+          type: string
+          description: NPK ratio e.g. 10-26-26
+        usageInfo:
+          type: string
+        buyLink:
+          type: string
+          description: External purchase URL
+        platform:
+          type: string
+          description: Platform name e.g. Amazon
+      required:
+        - name
+        - npkRatio
+        - usageInfo
+        - buyLink
+        - platform
