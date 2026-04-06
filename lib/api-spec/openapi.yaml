@@ -15,6 +15,8 @@ tags:
     description: Weather data and alerts
   - name: recommendation
     description: Crop recommendations
+  - name: simulator
+    description: Smart farming simulation operations
 paths:
   /healthz:
     get:
@@ -29,6 +31,93 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /predict-moisture:
+    get:
+      operationId: predictMoisture
+      tags: [sensor]
+      summary: Predict future soil moisture (LSTM)
+      description: Returns a predicted soil moisture value using the LSTM model.
+      responses:
+        "200":
+          description: Prediction result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string }
+                  predictedMoisture: { type: number, nullable: true }
+                  timestamp: { type: string }
+                required: [status]
+
+  /predict/soil-moisture:
+    post:
+      operationId: predictSoilMoistureTree
+      tags: [sensor]
+      summary: Predict next-step soil moisture (Decision Tree/Random Forest)
+      parameters:
+        - name: model_type
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [decision_tree, random_forest]
+            default: random_forest
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                temperature: { type: number }
+                humidity: { type: number }
+                rain: { type: integer }
+                prev_moisture: { type: number }
+              required: [temperature, humidity, rain, prev_moisture]
+      responses:
+        "200":
+          description: Prediction result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  predictedMoisture: { type: number }
+                  status: { type: string }
+                required: [predictedMoisture, status]
+
+  /predict/forecast:
+    post:
+      operationId: predictForecast
+      tags: [sensor]
+      summary: Forecast next value in sequence (Time Series)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                lags:
+                  type: array
+                  items: { type: number }
+                  minItems: 3
+                  maxItems: 3
+              required: [lags]
+      responses:
+        "200":
+          description: Forecast result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  forecast: { type: number }
+                  status: { type: string }
+                required: [forecast, status]
+
 
   /sensor-data:
     get:
@@ -72,6 +161,73 @@ paths:
               schema:
                 $ref: "#/components/schemas/RecommendationData"
 
+  /simulator/config:
+    get:
+      operationId: getSimulatorConfig
+      tags: [simulator]
+      summary: Get simulator configuration
+      responses:
+        "200":
+          description: Simulator configuration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SimulatorConfig"
+    post:
+      operationId: updateSimulatorConfig
+      tags: [simulator]
+      summary: Update simulator configuration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SimulatorConfig"
+      responses:
+        "200":
+          description: Configuration updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SimulatorConfig"
+
+  /simulator/latest:
+    get:
+      operationId: getLatestSimulatorData
+      tags: [simulator]
+      summary: Get latest simulated data point
+      responses:
+        "200":
+          description: Latest simulator data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SimulatorData"
+
+  /simulator/bulk:
+    post:
+      operationId: generateBulkData
+      tags: [simulator]
+      summary: Generate bulk simulated data
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                duration:
+                  type: string
+                  enum: [1-month, 3-months, 6-months, 1-year]
+              required: [duration]
+      responses:
+        "200":
+          description: Bulk data generated
+          content:
+            text/csv:
+              schema:
+                type: string
+
 components:
   schemas:
     HealthStatus:
@@ -94,22 +250,28 @@ components:
         humidity:
           type: number
           description: Humidity percentage (0-100)
-        nitrogen:
-          type: number
-          description: Nitrogen level (ppm)
-        phosphorus:
-          type: number
-          description: Phosphorus level (ppm)
-        potassium:
-          type: number
-          description: Potassium level (ppm)
+        nitrogen: { type: number }
+        phosphorus: { type: number }
+        potassium: { type: number }
         pumpStatus:
           type: string
           enum: [ON, OFF]
-          description: Water pump status
-        connectedAt:
-          type: string
-          description: ISO timestamp of last connection
+        connectedAt: { type: string }
+        rfPrediction:
+          type: number
+          description: Random Forest soil moisture prediction
+        dtInsights:
+          type: array
+          items: { type: string }
+          description: Decision Tree explainability reasons
+        tsForecastData:
+          type: array
+          items:
+            type: object
+            properties:
+              time: { type: string }
+              value: { type: number }
+          description: Time Series future trend data
       required:
         - soilMoisture
         - temperature
@@ -119,6 +281,7 @@ components:
         - potassium
         - pumpStatus
         - connectedAt
+
 
     WeatherData:
       type: object
@@ -206,3 +369,46 @@ components:
         - usageInfo
         - buyLink
         - platform
+
+    SimulatorConfig:
+      type: object
+      properties:
+        models:
+          type: object
+          properties:
+            lstm: { type: boolean }
+            randomForest: { type: boolean }
+            regression: { type: boolean }
+            ruleEngine: { type: boolean }
+          required: [lstm, randomForest, regression, ruleEngine]
+        controls:
+          type: object
+          properties:
+            temperature: { type: number }
+            humidity: { type: number }
+            rain: { type: boolean }
+            soilMoisture: { type: number }
+            nitrogen: { type: number }
+            phosphorus: { type: number }
+            potassium: { type: number }
+            pH: { type: number }
+          required: [temperature, humidity, rain, soilMoisture, nitrogen, phosphorus, potassium, pH]
+      required: [models, controls]
+
+    SimulatorData:
+      type: object
+      properties:
+        timestamp: { type: string }
+        soilMoisture: { type: number }
+        temperature: { type: number }
+        humidity: { type: number }
+        rain: { type: boolean }
+        nitrogen: { type: number }
+        phosphorus: { type: number }
+        potassium: { type: number }
+        pH: { type: number }
+        lstmOutput: { type: number }
+        rfOutput: { type: string }
+        regressionOutput: { type: number }
+        ruleEngineOutput: { type: string }
+      required: [timestamp, soilMoisture, temperature, humidity, rain, nitrogen, phosphorus, potassium, pH]

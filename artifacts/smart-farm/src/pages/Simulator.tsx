@@ -1,0 +1,448 @@
+import { AppLayout } from '@/components/layout/AppLayout';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Slider } from '@/components/ui/slider';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { 
+  useGetSimulatorConfig, 
+  useUpdateSimulatorConfig, 
+  useGetLatestSimulatorData, 
+  useGenerateBulkData, 
+  getGetSimulatorConfigQueryKey,
+  getGetLatestSimulatorDataQueryKey
+} from '@workspace/api-client-react';
+import { useState, useEffect } from 'react';
+import { useQueryClient } from "@tanstack/react-query";
+import { 
+  Database, Zap, Settings2, Activity, Download, Play, Square, 
+  Thermometer, Droplets, Wind, CloudRain, Beaker, FlaskConical,
+  BrainCircuit, Factory, Scale, Info
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from "sonner";
+
+export default function Simulator() {
+  const queryClient = useQueryClient();
+  const [isSimulating, setIsSimulating] = useState(false);
+  const [bulkDuration, setBulkDuration] = useState<"1-month" | "3-months" | "6-months" | "1-year">("1-month");
+  const [history, setHistory] = useState<any[]>([]);
+  
+  // Local state for immediate UI feedback
+  const [localConfig, setLocalConfig] = useState<any>(null);
+
+  const { data: serverConfig, isSuccess: isConfigLoaded } = useGetSimulatorConfig();
+  
+  // Update local state when server data arrives
+  useEffect(() => {
+    if (serverConfig) {
+      setLocalConfig(serverConfig);
+    }
+  }, [serverConfig]);
+
+  const updateConfigMutation = useUpdateSimulatorConfig({
+    mutation: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getGetSimulatorConfigQueryKey() });
+      }
+    }
+  });
+  
+  const { data: latestData } = useGetLatestSimulatorData({
+    query: { 
+      queryKey: getGetLatestSimulatorDataQueryKey(),
+      enabled: isSimulating, 
+      refetchInterval: 3000,
+    }
+  });
+
+  const generateBulk = useGenerateBulkData();
+
+  // Add to history when new data arrives
+  useEffect(() => {
+    if (latestData) {
+      setHistory(prev => [latestData, ...prev].slice(0, 50));
+    }
+  }, [latestData]);
+
+  const handleToggleModel = (model: string) => {
+    if (!localConfig) return;
+    const newConfig = {
+      ...localConfig,
+      models: {
+        ...localConfig.models,
+        [model]: !localConfig.models[model]
+      }
+    };
+    setLocalConfig(newConfig);
+    updateConfigMutation.mutate({ data: newConfig });
+  };
+
+  const handleControlChange = (key: string, value: any) => {
+    if (!localConfig) return;
+    const newConfig = {
+      ...localConfig,
+      controls: {
+        ...localConfig.controls,
+        [key]: value
+      }
+    };
+    setLocalConfig(newConfig);
+    updateConfigMutation.mutate({ data: newConfig });
+  };
+
+  const handleBulkGenerate = async () => {
+    try {
+      toast.info(`Generating ${bulkDuration} dataset...`);
+      const csvData = await generateBulk.mutateAsync({ data: { duration: bulkDuration } });
+      const blob = new Blob([csvData], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `farm_simulation_${bulkDuration}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      toast.success("Dataset downloaded successfully");
+    } catch (error) {
+      toast.error("Failed to generate dataset");
+    }
+  };
+
+  if (!isConfigLoaded || !localConfig) return <div className="p-8 text-center text-muted-foreground animate-pulse">Establishing secure link to simulation engine...</div>;
+
+  return (
+    <AppLayout>
+      <div className="max-w-7xl mx-auto space-y-8 pb-12">
+        <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-4xl font-display font-bold text-foreground flex items-center gap-3">
+              <Factory className="w-10 h-10 text-primary" />
+              Smart Farm Simulator
+            </h1>
+            <p className="text-muted-foreground text-lg font-medium mt-1">
+              Test ML models and generate synthetic datasets in a controlled environment.
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button 
+              size="lg" 
+              variant={isSimulating ? "destructive" : "default"}
+              onClick={() => setIsSimulating(!isSimulating)}
+              className="rounded-2xl px-8 font-bold shadow-lg shadow-primary/20"
+            >
+              {isSimulating ? (
+                <>
+                  <Square className="w-5 h-5 mr-2 fill-current" />
+                  Stop Simulation
+                </>
+              ) : (
+                <>
+                  <Play className="w-5 h-5 mr-2 fill-current" />
+                  Start Simulation
+                </>
+              )}
+            </Button>
+          </div>
+        </header>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          
+          {/* Left Column - Controls */}
+          <div className="lg:col-span-4 space-y-8">
+            
+            {/* Model Toggle Panel */}
+            <Card className="glass-card overflow-hidden">
+              <CardHeader className="bg-primary/5">
+                <CardTitle className="flex items-center gap-2 text-xl">
+                  <BrainCircuit className="w-6 h-6 text-primary" />
+                  ML Models
+                </CardTitle>
+                <CardDescription>Enable models to generate predictions</CardDescription>
+              </CardHeader>
+              <CardContent className="pt-6 space-y-6">
+                {[
+                  { id: 'lstm', name: 'LSTM Model', desc: 'Predicting future moisture' },
+                  { id: 'randomForest', name: 'Random Forest', desc: 'Irrigation decision' },
+                  { id: 'regression', name: 'Regression', desc: 'Water amount estimation' },
+                  { id: 'ruleEngine', name: 'Rule Engine', desc: 'Actionable logic' },
+                ].map((model) => (
+                  <div key={model.id} className="flex items-center justify-between group">
+                    <div className="space-y-0.5">
+                      <div className="text-sm font-bold text-foreground">{model.name}</div>
+                      <div className="text-xs text-muted-foreground">{model.desc}</div>
+                    </div>
+                    <Switch 
+                      checked={localConfig.models[model.id]}
+                      onCheckedChange={() => handleToggleModel(model.id)}
+                      className="data-[state=checked]:bg-primary"
+                    />
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            {/* Environment Manipulation */}
+            <Card className="glass-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-xl text-primary">
+                  <Settings2 className="w-6 h-6" />
+                  Environment Controls
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-8">
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-bold flex items-center gap-2">
+                       <CloudRain className="w-4 h-4 text-blue-500" />
+                       Rain Condition
+                    </span>
+                    <Badge variant={localConfig.controls.rain ? "default" : "secondary"} className="rounded-md">
+                      {localConfig.controls.rain ? "RAINING" : "NO RAIN"}
+                    </Badge>
+                  </div>
+                  <Switch 
+                    checked={localConfig.controls.rain}
+                    onCheckedChange={(val) => handleControlChange('rain', val)}
+                  />
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex justify-between">
+                    <span className="text-sm font-bold flex items-center gap-2">
+                      <Thermometer className="w-4 h-4 text-orange-500" />
+                      Temperature ({localConfig.controls.temperature}°C)
+                    </span>
+                  </div>
+                  <Slider 
+                    value={[localConfig.controls.temperature]}
+                    min={0} max={50} step={1}
+                    onValueChange={([val]) => handleControlChange('temperature', val)}
+                  />
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex justify-between">
+                    <span className="text-sm font-bold flex items-center gap-2">
+                      <Wind className="w-4 h-4 text-teal-500" />
+                      Humidity ({localConfig.controls.humidity}%)
+                    </span>
+                  </div>
+                  <Slider 
+                    value={[localConfig.controls.humidity]}
+                    min={0} max={100} step={1}
+                    onValueChange={([val]) => handleControlChange('humidity', val)}
+                  />
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex justify-between">
+                    <span className="text-sm font-bold flex items-center gap-2">
+                      <Droplets className="w-4 h-4 text-blue-400" />
+                      Soil Moisture ({localConfig.controls.soilMoisture}%)
+                    </span>
+                  </div>
+                  <Slider 
+                    value={[localConfig.controls.soilMoisture]}
+                    min={0} max={100} step={1}
+                    onValueChange={([val]) => handleControlChange('soilMoisture', val)}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                   <div className="space-y-2">
+                      <span className="text-xs font-bold flex items-center gap-1">
+                        <Beaker className="w-3 h-3 text-purple-500" /> NPK
+                      </span>
+                      <div className="flex gap-1">
+                         <input 
+                           type="number" 
+                           value={localConfig.controls.nitrogen} 
+                           onChange={(e) => handleControlChange('nitrogen', Number(e.target.value))}
+                           className="w-full bg-muted border-none rounded-md p-1 text-xs"
+                         />
+                      </div>
+                   </div>
+                   <div className="space-y-2">
+                      <span className="text-xs font-bold flex items-center gap-1">
+                        <FlaskConical className="w-3 h-3 text-emerald-500" /> pH
+                      </span>
+                      <input 
+                        type="number" 
+                        step="0.1"
+                        value={localConfig.controls.pH} 
+                        onChange={(e) => handleControlChange('pH', Number(e.target.value))}
+                        className="w-full bg-muted border-none rounded-md p-1 text-xs"
+                      />
+                   </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Right Column - Generation & Table */}
+          <div className="lg:col-span-8 space-y-8">
+            
+            {/* Bulk Generation Card */}
+            <Card className="bg-gradient-to-br from-indigo-50 to-white dark:from-indigo-950/20 dark:to-background border-indigo-100 dark:border-indigo-900 shadow-xl overflow-hidden relative">
+               <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
+                  <Database className="w-32 h-32" />
+               </div>
+               <CardContent className="pt-8 pb-8 flex flex-col md:flex-row items-center gap-8 relative z-10">
+                  <div className="flex-1 text-center md:text-left space-y-2">
+                    <h3 className="text-2xl font-bold font-display">Dataset Factory</h3>
+                    <p className="text-muted-foreground font-medium">Generate years of high-quality synthetic data for your ML training pipelines instantly.</p>
+                  </div>
+                  <div className="flex flex-col sm:flex-row items-center gap-4 min-w-[320px]">
+                    <Select value={bulkDuration} onValueChange={(v: any) => setBulkDuration(v)}>
+                      <SelectTrigger className="w-full sm:w-[140px] rounded-xl font-bold h-12 bg-white">
+                        <SelectValue placeholder="Duration" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1-month">1 Month</SelectItem>
+                        <SelectItem value="3-months">3 Months</SelectItem>
+                        <SelectItem value="6-months">6 Months</SelectItem>
+                        <SelectItem value="1-year">1 Year</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button 
+                      onClick={handleBulkGenerate} 
+                      className="w-full sm:w-auto rounded-xl px-10 h-12 font-bold bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-200"
+                    >
+                      <Download className="w-5 h-5 mr-2" />
+                      Generate CSV
+                    </Button>
+                  </div>
+               </CardContent>
+            </Card>
+
+            {/* Live Visualization Panel */}
+            <Card className="glass-card min-h-[500px]">
+               <CardHeader className="flex flex-row items-center justify-between border-b border-white/40 pb-6">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                       <Activity className="w-6 h-6 text-primary animate-pulse" />
+                       Live Stream Data
+                    </CardTitle>
+                    <CardDescription>Real-time simulation updates every 3 seconds</CardDescription>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={isSimulating ? "default" : "outline"} className="px-3 py-1 rounded-full font-bold">
+                      {isSimulating ? "STREAM ACTIVE" : "STREAM PAUSED"}
+                    </Badge>
+                  </div>
+               </CardHeader>
+               <CardContent className="p-0">
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader className="bg-muted/30">
+                        <TableRow>
+                          <TableHead className="font-bold">Timestamp</TableHead>
+                          <TableHead className="font-bold">Soil (%)</TableHead>
+                          <TableHead className="font-bold">Temp (°C)</TableHead>
+                          <TableHead className="font-bold">Rain</TableHead>
+                          <TableHead className="font-bold">Predictions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        <AnimatePresence>
+                          {history.map((row, i) => (
+                            <motion.tr 
+                              key={row.timestamp + i}
+                              initial={{ opacity: 0, x: -10 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              className="group hover:bg-muted/50 transition-colors"
+                            >
+                              <TableCell className="font-mono text-xs text-muted-foreground">
+                                {new Date(row.timestamp).toLocaleTimeString()}
+                              </TableCell>
+                              <TableCell className="font-bold">
+                                <div className="flex items-center gap-2">
+                                  {row.soilMoisture}%
+                                  <div className="w-12 h-1.5 bg-muted rounded-full overflow-hidden">
+                                    <div className="h-full bg-blue-500" style={{ width: `${row.soilMoisture}%` }} />
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell className="font-medium">{row.temperature}°</TableCell>
+                              <TableCell>
+                                {row.rain ? (
+                                  <Badge className="bg-blue-100 text-blue-700 border-none">Yes</Badge>
+                                ) : (
+                                  <Badge variant="outline" className="opacity-50">No</Badge>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex flex-wrap gap-2">
+                                  {localConfig.models.lstm && row.lstmOutput && (
+                                    <Badge variant="secondary" className="bg-purple-100 text-purple-700 border-none font-bold text-[10px]">
+                                      LSTM: {row.lstmOutput}%
+                                    </Badge>
+                                  )}
+                                  {localConfig.models.randomForest && row.rfOutput && (
+                                    <Badge variant="secondary" className="bg-orange-100 text-orange-700 border-none font-bold text-[10px]">
+                                      RF: {row.rfOutput}
+                                    </Badge>
+                                  )}
+                                  {localConfig.models.regression && row.regressionOutput !== undefined && (
+                                    <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 border-none font-bold text-[10px]">
+                                      REG: {row.regressionOutput}L
+                                    </Badge>
+                                  )}
+                                </div>
+                              </TableCell>
+                            </motion.tr>
+                          ))}
+                        </AnimatePresence>
+                        {history.length === 0 && (
+                          <TableRow>
+                            <TableCell colSpan={5} className="h-64 text-center">
+                               <div className="flex flex-col items-center gap-4 text-muted-foreground">
+                                  <Database className="w-12 h-12 opacity-20" />
+                                  <p className="font-medium">No live data yet. Click "Start Simulation" to begin.</p>
+                                </div>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+               </CardContent>
+            </Card>
+
+            {/* Logic Info */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+               <Card className="glass-card">
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Scale className="w-5 h-5 text-primary" />
+                      Rule Engine Logic
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm font-medium text-muted-foreground bg-muted/30 p-4 rounded-xl border italic">
+                      "{latestData?.ruleEngineOutput || "Awaiting simulation..."}"
+                    </p>
+                  </CardContent>
+               </Card>
+               <Card className="glass-card">
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Info className="w-5 h-5 text-primary" />
+                      Simulator Hint
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-sm text-muted-foreground">
+                    Try turning on **Rain** and watch the **Soil Moisture** increase over time. High **Temperature** will accelerate evaporation.
+                  </CardContent>
+               </Card>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </AppLayout>
+  );
+}

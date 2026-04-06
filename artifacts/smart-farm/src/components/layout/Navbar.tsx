@@ -17,6 +17,7 @@ export function Navbar() {
     { path: '/recommendation', label: tr('nav.recommendation', language) },
     { path: '/fertilizer', label: tr('nav.fertilizers', language) },
     { path: '/crop-analysis', label: tr('nav.crop_analysis', language) },
+    { path: '/simulator', label: tr('nav.simulator', language) },
   ];
 
   const toggleLang = () => {
@@ -35,7 +36,7 @@ export function Navbar() {
               <Leaf className="w-6 h-6 text-white" />
             </div>
             <span className="font-display font-bold text-2xl tracking-tight text-foreground">
-              Smart<span className="text-primary">Farm</span>
+              SHET<span className="text-primary">KARI</span>
             </span>
           </div>
 

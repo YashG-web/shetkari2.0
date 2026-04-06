@@ -1,0 +1,164 @@
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+import numpy as np
+import os
+import joblib
+from typing import List, Optional
+from enum import Enum
+import uvicorn
+
+# Optional TensorFlow for LSTM
+try:
+    import tensorflow as tf
+    HAS_TENSORFLOW = True
+except ImportError:
+    HAS_TENSORFLOW = False
+    print("⚠️ TensorFlow not found. LSTM model will be disabled.")
+
+app = FastAPI(title="Smart Farm ML Service")
+
+
+# Paths
+BASE_DIR = os.path.dirname(__file__)
+LSTM_MODEL_PATH = os.path.join(BASE_DIR, "soil_moisture_lstm.h5")
+DT_MODEL_PATH = os.path.join(BASE_DIR, "decision_tree_model.pkl")
+RF_MODEL_PATH = os.path.join(BASE_DIR, "random_forest_model.pkl")
+TS_MODEL_PATH = os.path.join(BASE_DIR, "time_series_model.pkl")
+
+# Load models globally
+lstm_model = None
+dt_model = None
+rf_model = None
+ts_model = None
+
+if HAS_TENSORFLOW and os.path.exists(LSTM_MODEL_PATH):
+    try:
+        lstm_model = tf.keras.models.load_model(LSTM_MODEL_PATH)
+        print("✅ LSTM Model loaded")
+    except Exception as e:
+        print(f"⚠️ Error loading LSTM: {e}")
+elif not HAS_TENSORFLOW:
+    print("⚠️ Skipping LSTM model (TensorFlow not installed)")
+
+
+if os.path.exists(DT_MODEL_PATH):
+    dt_model = joblib.load(DT_MODEL_PATH)
+    print(f"✅ Decision Tree Model loaded")
+
+if os.path.exists(RF_MODEL_PATH):
+    rf_model = joblib.load(RF_MODEL_PATH)
+    print(f"✅ Random Forest Model loaded")
+
+if os.path.exists(TS_MODEL_PATH):
+    ts_model = joblib.load(TS_MODEL_PATH)
+    print(f"✅ Time Series Model loaded")
+
+class ModelType(str, Enum):
+    LSTM = "lstm"
+    DECISION_TREE = "decision_tree"
+    RANDOM_FOREST = "random_forest"
+
+class PredictRequest(BaseModel):
+    soilMoisture: List[float]
+    temperature: List[float]
+    humidity: List[float]
+    rain: List[int]
+
+class SingleStepRequest(BaseModel):
+    temperature: float
+    humidity: float
+    rain: int
+    prev_moisture: float
+
+class ForecastRequest(BaseModel):
+    lags: List[float] # [lag_3, lag_2, lag_1] or [lag_1, lag_2, lag_3] depending on training
+
+# Preprocessing helpers
+def scale_inputs(values, feature_idx):
+    ranges = {0: (0, 100), 1: (0, 50), 2: (0, 100), 3: (0, 1)}
+    mi, ma = ranges.get(feature_idx, (0, 100))
+    return (np.array(values) - mi) / (ma - mi)
+
+def descale_output(val):
+    mi, ma = (0, 100)
+    return float(val * (ma - mi) + mi)
+
+@app.get("/")
+def health_check():
+    return {
+        "status": "ok",
+        "models": {
+            "lstm": lstm_model is not None,
+            "decision_tree": dt_model is not None,
+            "random_forest": rf_model is not None,
+            "time_series": ts_model is not None
+        }
+    }
+
+@app.post("/predict")
+async def predict_lstm(req: PredictRequest):
+    if len(req.soilMoisture) != 12:
+        raise HTTPException(status_code=400, detail="Must provide exactly 12 time steps")
+
+    try:
+        s_moisture = scale_inputs(req.soilMoisture, 0)
+        s_temp = scale_inputs(req.temperature, 1)
+        s_humidity = scale_inputs(req.humidity, 2)
+        s_rain = scale_inputs(req.rain, 3)
+
+        input_data = np.stack([s_moisture, s_temp, s_humidity, s_rain], axis=1)
+        input_data = np.expand_dims(input_data, axis=0)
+
+        if lstm_model:
+            prediction = lstm_model.predict(input_data, verbose=0)
+            predicted_moisture = descale_output(prediction[0][0])
+            status = "success"
+        else:
+            predicted_moisture = req.soilMoisture[-1] * 0.98 + (0.5 if req.rain[-1] else -1.2)
+            status = "simulated"
+        
+        return {"predictedMoisture": round(predicted_moisture, 2), "status": status}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/predict/soil-moisture")
+async def predict_tree(req: SingleStepRequest, model_type: ModelType = ModelType.RANDOM_FOREST):
+    model = rf_model if model_type == ModelType.RANDOM_FOREST else dt_model
+    
+    if not model:
+        # Fallback simulation
+        predicted = req.prev_moisture * 0.99 + (0.2 if req.rain else -0.5)
+        return {"predictedMoisture": round(predicted, 2), "status": "simulated"}
+
+    try:
+        # Features: ['temperature', 'humidity', 'rain', 'prev_moisture']
+        features = np.array([[req.temperature, req.humidity, req.rain, req.prev_moisture]])
+        prediction = model.predict(features)
+        return {"predictedMoisture": round(float(prediction[0]), 2), "status": "success"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/predict/forecast")
+async def predict_forecast(req: ForecastRequest):
+    if not ts_model:
+        # Simple moving average fallback
+        if not req.lags: return {"forecast": 0, "status": "simulated"}
+        predicted = sum(req.lags) / len(req.lags)
+        return {"forecast": round(predicted, 2), "status": "simulated"}
+
+    try:
+        # Features: ['lag_1', 'lag_2', 'lag_3']
+        # We'll assume the input list lags is [lag_1, lag_2, lag_3]
+        if len(req.lags) != 3:
+            raise HTTPException(status_code=400, detail="Must provide exactly 3 lags")
+            
+        features = np.array([req.lags])
+        prediction = ts_model.predict(features)
+        return {"forecast": round(float(prediction[0]), 2), "status": "success"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+

@@ -9,6 +9,7 @@ import LiveData from "@/pages/LiveData";
 import Recommendation from "@/pages/Recommendation";
 import Fertilizers from "@/pages/Fertilizers";
 import CropAnalysis from "@/pages/CropAnalysis";
+import Simulator from "@/pages/Simulator";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -28,6 +29,7 @@ function Router() {
       <Route path="/recommendation" component={Recommendation} />
       <Route path="/fertilizer" component={Fertilizers} />
       <Route path="/crop-analysis" component={CropAnalysis} />
+      <Route path="/simulator" component={Simulator} />
       <Route component={NotFound} />
     </Switch>
   );
