@@ -12,9 +12,10 @@ interface MetricCardProps {
   colorClass?: string;
   delay?: number;
   predictedValue?: number | string;
+  statusMessage?: string;
 }
 
-export function MetricCard({ title, value, unit, icon: Icon, trend, isPositive, colorClass = "text-primary", delay = 0, predictedValue }: MetricCardProps) {
+export function MetricCard({ title, value, unit, icon: Icon, trend, isPositive, colorClass = "text-primary", delay = 0, predictedValue, statusMessage }: MetricCardProps) {
   return (
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
@@ -46,8 +47,16 @@ export function MetricCard({ title, value, unit, icon: Icon, trend, isPositive, 
           {predictedValue !== undefined && (
             <div className="w-full mt-2 flex items-center gap-2">
               <span className="px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/40 text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest border border-indigo-100 dark:border-indigo-900/50">
-                AI Forecast: {predictedValue}{unit}
+                AI Accuracy Check: {predictedValue}{unit}
               </span>
+            </div>
+          )}
+
+          {statusMessage && (
+            <div className="w-full mt-2">
+              <p className="text-[11px] font-medium text-muted-foreground italic leading-tight border-l-2 border-primary/20 pl-2">
+                {statusMessage}
+              </p>
             </div>
           )}
         </div>

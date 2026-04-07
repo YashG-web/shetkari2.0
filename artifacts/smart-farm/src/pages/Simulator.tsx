@@ -164,10 +164,10 @@ export default function Simulator() {
               </CardHeader>
               <CardContent className="pt-6 space-y-6">
                 {[
-                  { id: 'lstm', name: 'LSTM Model', desc: 'Predicting future moisture' },
-                  { id: 'randomForest', name: 'Random Forest', desc: 'Irrigation decision' },
-                  { id: 'regression', name: 'Regression', desc: 'Water amount estimation' },
-                  { id: 'ruleEngine', name: 'Rule Engine', desc: 'Actionable logic' },
+                  { id: 'randomForest', name: 'Random Forest', desc: 'Moisture Accuracy' },
+                  { id: 'decisionTree', name: 'Decision Tree', desc: 'Reasoning Insights' },
+                  { id: 'timeSeries', name: 'Time Series', desc: '7-Hour Forecasting' },
+                  { id: 'ruleEngine', name: 'Rule Engine', desc: 'Automation Layer' },
                 ].map((model) => (
                   <div key={model.id} className="flex items-center justify-between group">
                     <div className="space-y-0.5">
@@ -343,7 +343,7 @@ export default function Simulator() {
                           <TableHead className="font-bold">Soil (%)</TableHead>
                           <TableHead className="font-bold">Temp (°C)</TableHead>
                           <TableHead className="font-bold">Rain</TableHead>
-                          <TableHead className="font-bold">Predictions</TableHead>
+                          <TableHead className="font-bold">AI Analytics</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -376,19 +376,19 @@ export default function Simulator() {
                               </TableCell>
                               <TableCell>
                                 <div className="flex flex-wrap gap-2">
-                                  {localConfig.models.lstm && row.lstmOutput && (
-                                    <Badge variant="secondary" className="bg-purple-100 text-purple-700 border-none font-bold text-[10px]">
-                                      LSTM: {row.lstmOutput}%
+                                  {localConfig.models.decisionTree && (
+                                    <Badge variant="secondary" className="bg-indigo-100 text-indigo-700 border-none font-bold text-[10px]">
+                                      DT (Reasoner): Active
                                     </Badge>
                                   )}
-                                  {localConfig.models.randomForest && row.rfOutput && (
+                                  {localConfig.models.randomForest && row.rfPrediction && (
                                     <Badge variant="secondary" className="bg-orange-100 text-orange-700 border-none font-bold text-[10px]">
-                                      RF: {row.rfOutput}
+                                      RF (Accuracy): {row.rfPrediction}%
                                     </Badge>
                                   )}
-                                  {localConfig.models.regression && row.regressionOutput !== undefined && (
-                                    <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 border-none font-bold text-[10px]">
-                                      REG: {row.regressionOutput}L
+                                  {localConfig.models.ruleEngine && (
+                                    <Badge variant="secondary" className="bg-blue-100 text-blue-700 border-none font-bold text-[10px]">
+                                      Rule: {row.pumpStatus || "Auto"}
                                     </Badge>
                                   )}
                                 </div>

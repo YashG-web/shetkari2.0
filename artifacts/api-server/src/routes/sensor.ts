@@ -13,12 +13,13 @@ router.get("/sensor-data", (_req, res) => {
     nitrogen: currentSimulatedData.nitrogen,
     phosphorus: currentSimulatedData.phosphorus,
     potassium: currentSimulatedData.potassium,
-    pumpStatus: currentSimulatedData.rfOutput === "ON" ? "ON" : "OFF",
+    pumpStatus: currentSimulatedData.pumpStatus === "ON" ? "ON" : "OFF",
     connectedAt: currentSimulatedData.timestamp,
     // ML Fields
     rfPrediction: currentSimulatedData.rfPrediction,
     dtInsights: currentSimulatedData.dtInsights,
     tsForecastData: currentSimulatedData.tsForecastData,
+    ruleEngineOutput: currentSimulatedData.ruleEngineOutput,
   });
 
   res.json(data);

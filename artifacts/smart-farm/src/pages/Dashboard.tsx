@@ -127,6 +127,7 @@ export default function Dashboard() {
             icon={Power}
             colorClass={sensorData?.pumpStatus === 'ON' ? 'text-primary' : 'text-gray-400'}
             delay={0.4}
+            statusMessage={(sensorData as any)?.ruleEngineOutput}
           />
         </div>
 
@@ -152,7 +153,7 @@ export default function Dashboard() {
               <div className="p-2 bg-indigo-600 text-white rounded-lg">
                 <Sparkles className="w-4 h-4" />
               </div>
-              <span className="text-sm font-bold text-indigo-900 dark:text-indigo-200 uppercase tracking-tight">AI Reasoner Insights:</span>
+              <span className="text-sm font-bold text-indigo-900 dark:text-indigo-200 uppercase tracking-tight">AI Reasoner (Decision Tree):</span>
             </div>
             <div className="flex flex-wrap gap-2 justify-center">
               {(sensorData as any).dtInsights.map((insight: string, i: number) => (

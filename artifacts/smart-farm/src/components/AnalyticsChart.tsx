@@ -48,7 +48,7 @@ export function AnalyticsChart({ currentData }: AnalyticsChartProps) {
       {/* Trend Area Chart (Moisture vs Temp) */}
       <div className="glass-card rounded-2xl p-6 shadow-sm border border-border/50 bg-card overflow-hidden">
         <h3 className="text-xl font-bold mb-6 text-foreground font-display flex items-center gap-2">
-          {currentData?.tsForecastData ? "Real-time AI Forecast" : "7-Day Environment Trend"}
+          {currentData?.tsForecastData ? "7-Hour AI Forecast" : "7-Day Environment Trend"}
           {currentData?.tsForecastData && <span className="text-[10px] bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-full uppercase tracking-widest font-black">AI Active</span>}
         </h3>
         <div className="h-[300px] w-full">

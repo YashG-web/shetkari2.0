@@ -5,9 +5,9 @@ const ML_SERVICE_URL = process.env.ML_SERVICE_URL || "http://localhost:8000";
 // Shared simulation state for all routes
 export let simulatorConfig = {
   models: {
-    lstm: true,
     randomForest: true,
-    regression: true,
+    decisionTree: true,
+    timeSeries: true,
     ruleEngine: true,
   },
   controls: {
@@ -113,68 +113,87 @@ async function runMLInference() {
   const data = calculateStep(simulatorConfig, currentSimulatedData);
   const mlData: any = { ...data };
 
+  // Use this as the "Source of Truth" for control decisions
+  let controlMoisture = data.soilMoisture;
+
   try {
     // 1. Random Forest Prediction (The "Accuracy" model)
-    const rfResponse = await axios.post(`${ML_SERVICE_URL}/predict/soil-moisture?model_type=random_forest`, {
-      temperature: data.temperature,
-      humidity: data.humidity,
-      rain: data.rain ? 1 : 0,
-      prev_moisture: data.soilMoisture
-    });
-    mlData.rfPrediction = rfResponse.data.predictedMoisture;
-    mlData.rfOutput = mlData.rfPrediction < 35 ? "ON" : "OFF"; // Shared logic for pump
-
-    // 2. Decision Tree Explainability (Insights)
-    mlData.dtInsights = generateDTInsights(data.soilMoisture, data.temperature, data.humidity, data.rain);
-    
-    // 3. Time Series Forecasting (Next 7 steps)
-    // For the UI trend graph, we'll generate a 7-step forecast
-    const forecast: { time: string, value: number }[] = [];
-    let lastMoisture = data.soilMoisture;
-    
-    // We fetch one prediction from the model and then simulate a trend
-    const tsResponse = await axios.post(`${ML_SERVICE_URL}/predict/forecast`, {
-      lags: [data.soilMoisture, data.soilMoisture * 0.99, data.soilMoisture * 0.98] // Mocking lags for now
-    });
-    
-    const nextVal = tsResponse.data.forecast;
-    for (let i = 1; i <= 7; i++) {
-      const timeLabel = new Date(Date.now() + i * 3600 * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      forecast.push({ 
-        time: timeLabel, 
-        value: Number((nextVal + (i * (data.rain ? 2 : -1.5))).toFixed(1)) // Projected trend
+    // Predicts the "true" moisture percentage by filtering out sensor noise.
+    if (simulatorConfig.models.randomForest) {
+      const rfResponse = await axios.post(`${ML_SERVICE_URL}/predict/soil-moisture?model_type=random_forest`, {
+        temperature: data.temperature,
+        humidity: data.humidity,
+        rain: data.rain ? 1 : 0,
+        prev_moisture: data.soilMoisture
       });
+      mlData.rfPrediction = rfResponse.data.predictedMoisture;
+      mlData.rfOutput = mlData.rfPrediction < 35 ? "ON" : "OFF"; // Advisory status
+      
+      // Update our "Control Source" to use the AI-optimized value
+      controlMoisture = mlData.rfPrediction;
     }
-    mlData.tsForecastData = forecast;
-    mlData.regressionOutput = nextVal;
 
-    // 4. Rule Engine (Actionable logic)
-    if (data.rain) {
-      mlData.ruleEngineOutput = "Rain detected: Irrigation skipped";
-    } else if (data.soilMoisture < 30) {
-      mlData.ruleEngineOutput = "Critical: Auto-irrigation started";
+    // 2. Decision Tree Reasoning (The "AI Reasoner")
+    // Analyzes the environmental state to produce the "AI Reasoner" text insights.
+    if (simulatorConfig.models.decisionTree) {
+      // Use the RF-optimized value for more accurate reasoning context
+      mlData.dtInsights = generateDTInsights(controlMoisture, data.temperature, data.humidity, data.rain);
     } else {
-      mlData.ruleEngineOutput = "Optimal: No action required";
+      mlData.dtInsights = ["AI Reasoner disabled"];
+    }
+    
+    // 3. Time Series Forecasting (The "Forecasting" model)
+    // Projects what the moisture will be for the next 7 hours.
+    if (simulatorConfig.models.timeSeries) {
+      const forecast: { time: string, value: number }[] = [];
+      const tsResponse = await axios.post(`${ML_SERVICE_URL}/predict/forecast`, {
+        lags: [controlMoisture, controlMoisture * 0.99, controlMoisture * 0.98]
+      });
+      
+      const baselineForecast = tsResponse.data.forecast;
+      for (let i = 1; i <= 7; i++) {
+        const timeLabel = new Date(Date.now() + i * 3600 * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const hourlyTrend = i * (data.rain ? 1.5 : -0.8);
+        forecast.push({ 
+          time: timeLabel, 
+          value: Number((baselineForecast + hourlyTrend).toFixed(1))
+        });
+      }
+      mlData.tsForecastData = forecast;
+      mlData.regressionOutput = baselineForecast;
     }
 
   } catch (error: any) {
     console.error("ML Inference error in simulation loop:", error.message);
-    // Fallback to basic logic if ML service is down
     mlData.rfPrediction = data.soilMoisture;
     mlData.dtInsights = ["AI Service temporarily offline. Using rule-based fallback."];
     mlData.tsForecastData = [];
+    // Fallback: controlMoisture remains the raw data.soilMoisture from above
+  }
+
+  // 4. Rule Engine Automation (Coupled with AI/Accuracy Layer)
+  // Now using controlMoisture (either AI-optimized or raw fallback)
+  if (data.rain) {
+    mlData.ruleEngineOutput = "Rain detected: Irrigation skipped";
+    mlData.pumpStatus = "OFF";
+  } else if (controlMoisture < 30) {
+    mlData.ruleEngineOutput = `Critical: Auto-irrigation started (${simulatorConfig.models.randomForest ? "AI Trigger" : "Source: Raw"})`;
+    mlData.pumpStatus = "ON";
+  } else {
+    mlData.ruleEngineOutput = "Optimal: No action required";
+    mlData.pumpStatus = "OFF";
   }
 
   currentSimulatedData = mlData;
 
-  // Update history buffer for LSTM (keep last 12 points)
+  // Update history buffer for models (keep last 12 points)
   sensorHistory.push({
     soilMoisture: currentSimulatedData.soilMoisture,
     temperature: currentSimulatedData.temperature,
     humidity: currentSimulatedData.humidity,
     rain: currentSimulatedData.rain ? 1 : 0
   });
-  
+
   if (sensorHistory.length > 12) {
     sensorHistory.shift();
   }

@@ -96,6 +96,7 @@ export const GetSensorDataResponse = zod.object({
     )
     .optional()
     .describe("Time Series future trend data"),
+  ruleEngineOutput: zod.string().optional().describe("Automation status message from the Rule Engine"),
 });
 
 /**
@@ -140,9 +141,9 @@ export const GetRecommendationResponse = zod.object({
  */
 export const GetSimulatorConfigResponse = zod.object({
   models: zod.object({
-    lstm: zod.boolean(),
     randomForest: zod.boolean(),
-    regression: zod.boolean(),
+    decisionTree: zod.boolean(),
+    timeSeries: zod.boolean(),
     ruleEngine: zod.boolean(),
   }),
   controls: zod.object({
@@ -162,9 +163,9 @@ export const GetSimulatorConfigResponse = zod.object({
  */
 export const UpdateSimulatorConfigBody = zod.object({
   models: zod.object({
-    lstm: zod.boolean(),
     randomForest: zod.boolean(),
-    regression: zod.boolean(),
+    decisionTree: zod.boolean(),
+    timeSeries: zod.boolean(),
     ruleEngine: zod.boolean(),
   }),
   controls: zod.object({
@@ -181,9 +182,9 @@ export const UpdateSimulatorConfigBody = zod.object({
 
 export const UpdateSimulatorConfigResponse = zod.object({
   models: zod.object({
-    lstm: zod.boolean(),
     randomForest: zod.boolean(),
-    regression: zod.boolean(),
+    decisionTree: zod.boolean(),
+    timeSeries: zod.boolean(),
     ruleEngine: zod.boolean(),
   }),
   controls: zod.object({
