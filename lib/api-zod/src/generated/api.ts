@@ -97,6 +97,14 @@ export const GetSensorDataResponse = zod.object({
     .optional()
     .describe("Time Series future trend data"),
   ruleEngineOutput: zod.string().optional().describe("Automation status message from the Rule Engine"),
+  fertilizerRecommendation: zod
+    .string()
+    .optional()
+    .describe("Latest fertilizer recommendation from ML/fallback logic"),
+  fertilizerSource: zod
+    .enum(["AI", "Fallback"])
+    .optional()
+    .describe("Indicates whether fertilizer recommendation came from AI or fallback rules"),
 });
 
 /**

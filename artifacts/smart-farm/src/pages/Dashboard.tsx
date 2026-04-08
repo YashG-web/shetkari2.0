@@ -11,7 +11,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { MetricCard } from '@/components/MetricCard';
 import { AnalyticsChart } from '@/components/AnalyticsChart';
 import { Link } from 'wouter';
-import { Droplets, ThermometerSun, Wind, Power, AlertTriangle, ArrowRight, CloudRain, Sparkles } from 'lucide-react';
+import { Droplets, ThermometerSun, Wind, Power, AlertTriangle, ArrowRight, CloudRain, Sparkles, Sprout } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function Dashboard() {
@@ -128,6 +128,17 @@ export default function Dashboard() {
             colorClass={sensorData?.pumpStatus === 'ON' ? 'text-primary' : 'text-gray-400'}
             delay={0.4}
             statusMessage={(sensorData as any)?.ruleEngineOutput}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 gap-6">
+          <MetricCard
+            title="AI Fertilizer Recommendation"
+            value={isLoadingSensor ? '-' : sensorData?.fertilizerRecommendation ?? '-'}
+            icon={Sprout}
+            colorClass="text-green-600"
+            delay={0.5}
+            statusMessage={isLoadingSensor ? undefined : `Source: ${sensorData?.fertilizerSource ?? 'Fallback'}`}
           />
         </div>
 

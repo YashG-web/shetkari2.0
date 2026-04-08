@@ -24,12 +24,14 @@ LSTM_MODEL_PATH = os.path.join(BASE_DIR, "soil_moisture_lstm.h5")
 DT_MODEL_PATH = os.path.join(BASE_DIR, "decision_tree_model.pkl")
 RF_MODEL_PATH = os.path.join(BASE_DIR, "random_forest_model.pkl")
 TS_MODEL_PATH = os.path.join(BASE_DIR, "time_series_model.pkl")
+FERTILIZER_MODEL_PATH = os.path.join(BASE_DIR, "fertilizer_model.pkl")
 
 # Load models globally
 lstm_model = None
 dt_model = None
 rf_model = None
 ts_model = None
+fertilizer_model = None
 
 if HAS_TENSORFLOW and os.path.exists(LSTM_MODEL_PATH):
     try:
@@ -53,6 +55,10 @@ if os.path.exists(TS_MODEL_PATH):
     ts_model = joblib.load(TS_MODEL_PATH)
     print(f"✅ Time Series Model loaded")
 
+if os.path.exists(FERTILIZER_MODEL_PATH):
+    fertilizer_model = joblib.load(FERTILIZER_MODEL_PATH)
+    print(f"✅ Fertilizer Model loaded")
+
 class ModelType(str, Enum):
     LSTM = "lstm"
     DECISION_TREE = "decision_tree"
@@ -73,6 +79,14 @@ class SingleStepRequest(BaseModel):
 class ForecastRequest(BaseModel):
     lags: List[float] # [lag_3, lag_2, lag_1] or [lag_1, lag_2, lag_3] depending on training
 
+class FertilizerRequest(BaseModel):
+    N: float
+    P: float
+    K: float
+    temperature: float
+    humidity: float
+    soilMoisture: float
+
 # Preprocessing helpers
 def scale_inputs(values, feature_idx):
     ranges = {0: (0, 100), 1: (0, 50), 2: (0, 100), 3: (0, 1)}
@@ -91,7 +105,8 @@ def health_check():
             "lstm": lstm_model is not None,
             "decision_tree": dt_model is not None,
             "random_forest": rf_model is not None,
-            "time_series": ts_model is not None
+            "time_series": ts_model is not None,
+            "fertilizer": fertilizer_model is not None
         }
     }
 
@@ -118,6 +133,34 @@ async def predict_lstm(req: PredictRequest):
             status = "simulated"
         
         return {"predictedMoisture": round(predicted_moisture, 2), "status": status}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/predict/fertilizer")
+async def predict_fertilizer(req: FertilizerRequest):
+
+    if not fertilizer_model:
+        raise HTTPException(status_code=503, detail="Fertilizer model unavailable")
+
+    try:
+        # Features: ['N', 'P', 'K', 'temperature', 'humidity', 'moisture']
+        features = np.array([[
+            req.N,
+            req.P,
+            req.K,
+            req.temperature,
+            req.humidity,
+            req.soilMoisture
+        ]])
+        prediction = fertilizer_model.predict(features)
+        response = {"recommended_fertilizer": str(prediction[0])}
+
+        if hasattr(fertilizer_model, "predict_proba"):
+            probabilities = fertilizer_model.predict_proba(features)
+            if probabilities is not None and len(probabilities) > 0:
+                response["confidence"] = round(float(np.max(probabilities[0])), 4)
+
+        return response
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

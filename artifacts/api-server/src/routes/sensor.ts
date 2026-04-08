@@ -20,6 +20,8 @@ router.get("/sensor-data", (_req, res) => {
     dtInsights: currentSimulatedData.dtInsights,
     tsForecastData: currentSimulatedData.tsForecastData,
     ruleEngineOutput: currentSimulatedData.ruleEngineOutput,
+    fertilizerRecommendation: currentSimulatedData.fertilizerRecommendation,
+    fertilizerSource: currentSimulatedData.fertilizerSource,
   });
 
   res.json(data);

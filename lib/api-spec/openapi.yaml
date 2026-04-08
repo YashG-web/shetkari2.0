@@ -272,6 +272,16 @@ components:
               time: { type: string }
               value: { type: number }
           description: Time Series future trend data
+        ruleEngineOutput:
+          type: string
+          description: Automation status message from the Rule Engine
+        fertilizerRecommendation:
+          type: string
+          description: Latest fertilizer recommendation from ML/fallback logic
+        fertilizerSource:
+          type: string
+          enum: [AI, Fallback]
+          description: Indicates whether fertilizer recommendation came from AI or fallback rules
       required:
         - soilMoisture
         - temperature

@@ -2,6 +2,39 @@ import axios from "axios";
 
 const ML_SERVICE_URL = process.env.ML_SERVICE_URL || "http://localhost:8000";
 
+const FERTILIZER_LABEL_MAP: Record<string, string> = {
+  "Balanced NPK": "Iffco NPK 12-32-16",
+  "Compost": "Organic Compost",
+  "DAP": "DAP 18-46-0",
+  "Potash": "Muriate of Potash",
+  "Urea": "Urea 46-0-0",
+};
+
+export type FertilizerSource = "AI" | "Fallback";
+
+function normalizeFertilizerLabel(label: string): string {
+  return FERTILIZER_LABEL_MAP[label] ?? label;
+}
+
+export function getRuleBasedFertilizerRecommendation(data: {
+  soilMoisture: number;
+  nitrogen: number;
+  phosphorus: number;
+  potassium: number;
+  temperature: number;
+}): string {
+  if (data.soilMoisture < 35) {
+    return "Liquid Humic Acid";
+  }
+  if (data.nitrogen < 40 || data.phosphorus < 25 || data.potassium < 40) {
+    return "Iffco NPK 12-32-16";
+  }
+  if (data.temperature > 38) {
+    return "Seaweed Extract";
+  }
+  return "Coromandel Gromor 14-35-14";
+}
+
 // Shared simulation state for all routes
 export let simulatorConfig = {
   models: {
@@ -40,7 +73,9 @@ export let currentSimulatedData: any = {
   // New ML specific fields
   rfPrediction: 50,
   dtInsights: ["Establishing initial baseline...", "Waiting for sensor stream..."],
-  tsForecastData: [] as { time: string, value: number }[]
+  tsForecastData: [] as { time: string, value: number }[],
+  fertilizerRecommendation: "Coromandel Gromor 14-35-14",
+  fertilizerSource: "Fallback" as FertilizerSource
 };
 
 export let sensorHistory: any[] = [];
@@ -60,6 +95,12 @@ function generateDTInsights(moisture: number, temp: number, humidity: number, ra
   if (temp > 35) insights.push("🔥 High ambient temperature is accelerating evaporation.");
   if (humidity > 80) insights.push("💧 High humidity is reducing transpiration stress.");
   if (moisture < 30) insights.push("⚠️ Critical: Low moisture detected by sensors.");
+  if (temp > 38) insights.push("🔥 Extreme heat detected.");
+  
+  // Nutrient insights
+  if (currentSimulatedData.nitrogen < 120) insights.push("📉 Nitrogen levels are dropping due to crop uptake/leaching.");
+  if (currentSimulatedData.nitrogen < 80) insights.push("⚠️ Alert: Severe Nitrogen deficiency detected.");
+  
   if (insights.length === 0) insights.push("🍀 Environmental conditions are currently stable.");
   return insights;
 }
@@ -84,6 +125,74 @@ export function calculateStep(config: typeof simulatorConfig, current: any) {
   newMoisture = Math.max(0, Math.min(100, newMoisture));
 
   const jitter = (v: number, r: number) => Number((v + (Math.random() - 0.5) * r).toFixed(1));
+  const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
+
+  const currentNitrogen = typeof current.nitrogen === "number" ? current.nitrogen : nitrogen;
+  const currentPhosphorus = typeof current.phosphorus === "number" ? current.phosphorus : phosphorus;
+  const currentPotassium = typeof current.potassium === "number" ? current.potassium : potassium;
+
+  const heatStress = Math.max(0, temperature - 30);
+  const lowHumidityStress = Math.max(0, 45 - humidity);
+  const moistureActivity = Math.max(0, newMoisture - 55);
+  const dryStress = Math.max(0, 35 - newMoisture);
+  const rainLeaching = rain ? 1.5 : 0;
+
+  const nitrogenLoss = rainLeaching * 1.2 + heatStress * 0.08 + lowHumidityStress * 0.05 + moistureActivity * 0.03 + dryStress * 0.04;
+  const phosphorusLoss = rainLeaching * 0.4 + heatStress * 0.03 + lowHumidityStress * 0.02 + moistureActivity * 0.02 + dryStress * 0.02;
+  const potassiumLoss = rainLeaching * 0.7 + heatStress * 0.05 + lowHumidityStress * 0.03 + moistureActivity * 0.025 + dryStress * 0.03;
+
+  const baselineReturnRate = 0.03;
+  const nextNitrogen = Number(clamp(
+    currentNitrogen + (nitrogen - currentNitrogen) * baselineReturnRate - nitrogenLoss + (Math.random() - 0.5) * 1.2,
+    0,
+    300
+  ).toFixed(1));
+  const nextPhosphorus = Number(clamp(
+    currentPhosphorus + (phosphorus - currentPhosphorus) * baselineReturnRate - phosphorusLoss + (Math.random() - 0.5) * 0.8,
+    0,
+    300
+  ).toFixed(1));
+  const nextPotassium = Number(clamp(
+    currentPotassium + (potassium - currentPotassium) * baselineReturnRate - potassiumLoss + (Math.random() - 0.5) * 1.0,
+    0,
+    300
+  ).toFixed(1));
+
+  const nextSoilMoisture = Number(newMoisture.toFixed(1));
+
+  // Dynamic NPK Logic
+  // We use current levels and apply drift based on environment
+  let newN = current.nitrogen || nitrogen;
+  let newP = current.phosphorus || phosphorus;
+  let newK = current.potassium || potassium;
+
+  // 1. Nitrogen Leaching (High impact during rain)
+  if (rain) {
+    newN -= 0.15 + Math.random() * 0.2; // Fast leach
+  } else {
+    newN -= 0.02 + Math.random() * 0.03; // Slow natural draw
+  }
+
+  // 2. P/K Depletion
+  newP -= 0.01 + Math.random() * 0.02;
+  newK -= 0.03 + Math.random() * 0.05;
+
+  // 3. Concentration/Dilution effect based on moisture extremes
+  if (newMoisture < 20) {
+    // Extreme dry: Nutrients concentrate slightly due to lack of water volume (simulated sensor effect)
+    newN += 0.05;
+  }
+
+  // 4. "Manual Fertilization" Sync
+  // If the user manually changes the control slider significantly (>15 units), we snap to the new value
+  if (Math.abs(newN - nitrogen) > 15) newN = nitrogen;
+  if (Math.abs(newP - phosphorus) > 10) newP = phosphorus;
+  if (Math.abs(newK - potassium) > 20) newK = potassium;
+
+  // Ensure bounds
+  newN = Math.max(0, newN);
+  newP = Math.max(0, newP);
+  newK = Math.max(0, newK);
 
   return {
     timestamp: new Date().toISOString(),
@@ -91,9 +200,9 @@ export function calculateStep(config: typeof simulatorConfig, current: any) {
     temperature: jitter(temperature, 1),
     humidity: jitter(humidity, 2),
     rain,
-    nitrogen: jitter(nitrogen, 4),
-    phosphorus: jitter(phosphorus, 2),
-    potassium: jitter(potassium, 4),
+    nitrogen: Number(jitter(newN, 2).toFixed(1)),
+    phosphorus: Number(jitter(newP, 1).toFixed(1)),
+    potassium: Number(jitter(newK, 2).toFixed(1)),
     pH: Number((pH + (Math.random() - 0.5) * 0.1).toFixed(2)),
     
     // Default ML fields for sync compatibility
@@ -103,7 +212,9 @@ export function calculateStep(config: typeof simulatorConfig, current: any) {
     ruleEngineOutput: "Simulating...",
     rfPrediction: Number(newMoisture.toFixed(1)),
     dtInsights: ["Sync simulation step"],
-    tsForecastData: []
+    tsForecastData: [],
+    fertilizerRecommendation: fallbackFertilizerRecommendation,
+    fertilizerSource: "Fallback" as FertilizerSource
   };
 }
 
@@ -112,6 +223,15 @@ export function calculateStep(config: typeof simulatorConfig, current: any) {
 async function runMLInference() {
   const data = calculateStep(simulatorConfig, currentSimulatedData);
   const mlData: any = { ...data };
+  const fallbackFertilizer = getRuleBasedFertilizerRecommendation({
+    soilMoisture: data.soilMoisture,
+    nitrogen: data.nitrogen,
+    phosphorus: data.phosphorus,
+    potassium: data.potassium,
+    temperature: data.temperature,
+  });
+  mlData.fertilizerRecommendation = fallbackFertilizer;
+  mlData.fertilizerSource = "Fallback";
 
   // Use this as the "Source of Truth" for control decisions
   let controlMoisture = data.soilMoisture;
@@ -168,7 +288,30 @@ async function runMLInference() {
     mlData.rfPrediction = data.soilMoisture;
     mlData.dtInsights = ["AI Service temporarily offline. Using rule-based fallback."];
     mlData.tsForecastData = [];
+    mlData.fertilizerRecommendation = fallbackFertilizer;
+    mlData.fertilizerSource = "Fallback";
     // Fallback: controlMoisture remains the raw data.soilMoisture from above
+  }
+
+  try {
+    const fertilizerResponse = await axios.post(`${ML_SERVICE_URL}/predict/fertilizer`, {
+      N: data.nitrogen,
+      P: data.phosphorus,
+      K: data.potassium,
+      temperature: data.temperature,
+      humidity: data.humidity,
+      soilMoisture: data.soilMoisture
+    }, { timeout: 1000 });
+
+    const recommendedFertilizer = fertilizerResponse.data?.recommended_fertilizer;
+    if (typeof recommendedFertilizer === "string" && recommendedFertilizer.trim().length > 0) {
+      mlData.fertilizerRecommendation = normalizeFertilizerLabel(recommendedFertilizer.trim());
+      mlData.fertilizerSource = "AI";
+    }
+  } catch (error: any) {
+    console.error("Fertilizer inference failed. Using fallback recommendation.", error.message);
+    mlData.fertilizerRecommendation = fallbackFertilizer;
+    mlData.fertilizerSource = "Fallback";
   }
 
   // 4. Rule Engine Automation (Coupled with AI/Accuracy Layer)

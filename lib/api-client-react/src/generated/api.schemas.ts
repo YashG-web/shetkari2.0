@@ -40,6 +40,12 @@ export interface SensorData {
   dtInsights?: string[];
   /** Time Series future trend data */
   tsForecastData?: SensorDataTsForecastDataItem[];
+  /** Automation status message from the Rule Engine */
+  ruleEngineOutput?: string;
+  /** Latest fertilizer recommendation from ML/fallback logic */
+  fertilizerRecommendation?: string;
+  /** Indicates whether fertilizer recommendation came from AI or fallback rules */
+  fertilizerSource?: "AI" | "Fallback";
 }
 
 export type WeatherAlertType =
