@@ -160,49 +160,24 @@ export function calculateStep(config: typeof simulatorConfig, current: any) {
 
   const nextSoilMoisture = Number(newMoisture.toFixed(1));
 
-  // Dynamic NPK Logic
-  // We use current levels and apply drift based on environment
-  let newN = current.nitrogen || nitrogen;
-  let newP = current.phosphorus || phosphorus;
-  let newK = current.potassium || potassium;
-
-  // 1. Nitrogen Leaching (High impact during rain)
-  if (rain) {
-    newN -= 0.15 + Math.random() * 0.2; // Fast leach
-  } else {
-    newN -= 0.02 + Math.random() * 0.03; // Slow natural draw
-  }
-
-  // 2. P/K Depletion
-  newP -= 0.01 + Math.random() * 0.02;
-  newK -= 0.03 + Math.random() * 0.05;
-
-  // 3. Concentration/Dilution effect based on moisture extremes
-  if (newMoisture < 20) {
-    // Extreme dry: Nutrients concentrate slightly due to lack of water volume (simulated sensor effect)
-    newN += 0.05;
-  }
-
-  // 4. "Manual Fertilization" Sync
-  // If the user manually changes the control slider significantly (>15 units), we snap to the new value
-  if (Math.abs(newN - nitrogen) > 15) newN = nitrogen;
-  if (Math.abs(newP - phosphorus) > 10) newP = phosphorus;
-  if (Math.abs(newK - potassium) > 20) newK = potassium;
-
-  // Ensure bounds
-  newN = Math.max(0, newN);
-  newP = Math.max(0, newP);
-  newK = Math.max(0, newK);
+  // Determine fallback recommendation for this physical step
+  const fallbackFertilizerRecommendation = getRuleBasedFertilizerRecommendation({
+    soilMoisture: nextSoilMoisture,
+    nitrogen: nextNitrogen,
+    phosphorus: nextPhosphorus,
+    potassium: nextPotassium,
+    temperature: jitter(temperature, 1),
+  });
 
   return {
     timestamp: new Date().toISOString(),
-    soilMoisture: Number(newMoisture.toFixed(1)),
+    soilMoisture: nextSoilMoisture,
     temperature: jitter(temperature, 1),
     humidity: jitter(humidity, 2),
     rain,
-    nitrogen: Number(jitter(newN, 2).toFixed(1)),
-    phosphorus: Number(jitter(newP, 1).toFixed(1)),
-    potassium: Number(jitter(newK, 2).toFixed(1)),
+    nitrogen: nextNitrogen,
+    phosphorus: nextPhosphorus,
+    potassium: nextPotassium,
     pH: Number((pH + (Math.random() - 0.5) * 0.1).toFixed(2)),
     
     // Default ML fields for sync compatibility
@@ -210,11 +185,11 @@ export function calculateStep(config: typeof simulatorConfig, current: any) {
     rfOutput: "OFF",
     regressionOutput: 0,
     ruleEngineOutput: "Simulating...",
-    rfPrediction: Number(newMoisture.toFixed(1)),
+    rfPrediction: nextSoilMoisture,
     dtInsights: ["Sync simulation step"],
     tsForecastData: [],
     fertilizerRecommendation: fallbackFertilizerRecommendation,
-    fertilizerSource: "Fallback" as FertilizerSource
+    fertilizerSource: "Fallback"
   };
 }
 
@@ -284,7 +259,8 @@ async function runMLInference() {
     }
 
   } catch (error: any) {
-    console.error("ML Inference error in simulation loop:", error.message);
+    // Silencing log spam when ML service is offline
+    console.debug("ML Inference unavailable - using rule-based fallback.");
     mlData.rfPrediction = data.soilMoisture;
     mlData.dtInsights = ["AI Service temporarily offline. Using rule-based fallback."];
     mlData.tsForecastData = [];
@@ -309,7 +285,8 @@ async function runMLInference() {
       mlData.fertilizerSource = "AI";
     }
   } catch (error: any) {
-    console.error("Fertilizer inference failed. Using fallback recommendation.", error.message);
+    // Silencing log spam
+    console.debug("Fertilizer AI unavailable - using static recommendation.");
     mlData.fertilizerRecommendation = fallbackFertilizer;
     mlData.fertilizerSource = "Fallback";
   }
