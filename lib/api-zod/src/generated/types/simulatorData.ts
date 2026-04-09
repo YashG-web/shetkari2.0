@@ -20,7 +20,8 @@ export interface SimulatorData {
   rfOutput?: string;
   regressionOutput?: number;
   ruleEngineOutput?: string;
+  growthStage?: string;
+  growthConfidence?: number;
   fertilizerRecommendation?: string;
   fertilizerSource?: 'AI' | 'Fallback';
 }
-

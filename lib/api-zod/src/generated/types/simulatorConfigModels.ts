@@ -11,4 +11,5 @@ export type SimulatorConfigModels = {
   randomForest: boolean;
   regression: boolean;
   ruleEngine: boolean;
+  growthAI: boolean;
 };

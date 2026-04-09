@@ -161,6 +161,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/RecommendationData"
 
+  /growth-stage:
+    post:
+      operationId: analyzeGrowthStage
+      tags: [recommendation]
+      summary: Analyze crop growth stage from image
+      description: Uploads a crop image to identify its current development stage using AI.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                image:
+                  type: string
+                  format: binary
+              required: [image]
+      responses:
+        "200":
+          description: Analysis result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GrowthStageResponse"
+
   /simulator/config:
     get:
       operationId: getSimulatorConfig
@@ -282,6 +307,16 @@ components:
           type: string
           enum: [AI, Fallback]
           description: Indicates whether fertilizer recommendation came from AI or fallback rules
+        growthStage:
+          type: string
+          description: Predicted crop growth stage
+        growthConfidence:
+          type: number
+          description: Confidence level of the growth stage prediction
+        allScores:
+          type: array
+          items: { type: number }
+          description: Probability distribution across all growth stages
       required:
         - soilMoisture
         - temperature
@@ -390,7 +425,8 @@ components:
             randomForest: { type: boolean }
             regression: { type: boolean }
             ruleEngine: { type: boolean }
-          required: [lstm, randomForest, regression, ruleEngine]
+            growthAI: { type: boolean }
+          required: [lstm, randomForest, regression, ruleEngine, growthAI]
         controls:
           type: object
           properties:
@@ -421,4 +457,25 @@ components:
         rfOutput: { type: string }
         regressionOutput: { type: number }
         ruleEngineOutput: { type: string }
+        growthStage: { type: string }
+        growthConfidence: { type: number }
+        allScores:
+          type: array
+          items: { type: number }
       required: [timestamp, soilMoisture, temperature, humidity, rain, nitrogen, phosphorus, potassium, pH]
+
+    GrowthStageResponse:
+      type: object
+      properties:
+        stage:
+          type: string
+        confidence:
+          type: number
+        all_scores:
+          type: array
+          items: { type: number }
+        recommendation:
+          type: string
+        status:
+          type: string
+      required: [stage, confidence, recommendation, status]

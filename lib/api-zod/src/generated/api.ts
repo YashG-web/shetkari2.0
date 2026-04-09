@@ -105,6 +105,11 @@ export const GetSensorDataResponse = zod.object({
     .enum(["AI", "Fallback"])
     .optional()
     .describe("Indicates whether fertilizer recommendation came from AI or fallback rules"),
+  growthStage: zod.string().optional().describe("Predicted crop growth stage"),
+  growthConfidence: zod
+    .number()
+    .optional()
+    .describe("Confidence level of the growth stage prediction"),
 });
 
 /**
@@ -153,6 +158,7 @@ export const GetSimulatorConfigResponse = zod.object({
     decisionTree: zod.boolean(),
     timeSeries: zod.boolean(),
     ruleEngine: zod.boolean(),
+    growthAI: zod.boolean(),
   }),
   controls: zod.object({
     temperature: zod.number(),
@@ -175,6 +181,7 @@ export const UpdateSimulatorConfigBody = zod.object({
     decisionTree: zod.boolean(),
     timeSeries: zod.boolean(),
     ruleEngine: zod.boolean(),
+    growthAI: zod.boolean(),
   }),
   controls: zod.object({
     temperature: zod.number(),
@@ -194,6 +201,7 @@ export const UpdateSimulatorConfigResponse = zod.object({
     decisionTree: zod.boolean(),
     timeSeries: zod.boolean(),
     ruleEngine: zod.boolean(),
+    growthAI: zod.boolean(),
   }),
   controls: zod.object({
     temperature: zod.number(),
@@ -226,6 +234,8 @@ export const GetLatestSimulatorDataResponse = zod.object({
   ruleEngineOutput: zod.string().optional(),
   fertilizerRecommendation: zod.string().optional(),
   fertilizerSource: zod.enum(["AI", "Fallback"]).optional(),
+  growthStage: zod.string().optional(),
+  growthConfidence: zod.number().optional(),
 });
 
 

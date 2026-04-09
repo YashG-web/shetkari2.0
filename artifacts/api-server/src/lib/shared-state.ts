@@ -52,6 +52,7 @@ export let simulatorConfig = {
     decisionTree: true,
     timeSeries: true,
     ruleEngine: true,
+    growthAI: true,
   },
   controls: {
     temperature: 25,
@@ -85,8 +86,12 @@ export let currentSimulatedData: any = {
   dtInsights: ["Establishing initial baseline...", "Waiting for sensor stream..."],
   tsForecastData: [] as { time: string, value: number }[],
   fertilizerRecommendation: "Coromandel Gromor 14-35-14",
-  fertilizerSource: "Fallback" as FertilizerSource
+  fertilizerSource: "Fallback" as FertilizerSource,
+  growthStage: "Young Bud",
+  growthConfidence: 94.2
 };
+
+let growthAge = 0; // Internal counter for simulation steps
 
 export let sensorHistory: any[] = [];
 
@@ -230,8 +235,24 @@ export function calculateStep(config: typeof simulatorConfig, current: any) {
     dtInsights: ["Sync simulation step"],
     tsForecastData: [],
     fertilizerRecommendation: fallbackFertilizerRecommendation,
-    fertilizerSource: "Fallback"
+    fertilizerSource: "Fallback",
+    growthStage: current.growthStage || "Young Bud",
+    growthConfidence: current.growthConfidence || 92.5
   };
+}
+
+// Logic to advance growth stages realistically
+function calculateGrowthStage(age: number, nitrogen: number): { stage: string, confidence: number } {
+  const stages = ["Young Bud", "Mature Bud", "Early Bloom", "Full Bloom", "Wilthed"];
+  
+  // Growth speed factor: nitrogen deficiency slows it down
+  const deficiencyFactor = nitrogen < 40 ? 0.3 : 1.0;
+  const stageIndex = Math.min(stages.length - 1, Math.floor(age / 50)); // Advance every 50 steps
+  
+  const stage = stages[stageIndex];
+  const confidence = 85 + Math.random() * 12; // Realistic fluctuation
+  
+  return { stage, confidence: Number(confidence.toFixed(1)) };
 }
 
 
@@ -330,11 +351,18 @@ export async function runMLInference() {
     mlData.ruleEngineOutput = "Rain detected: Irrigation skipped";
     mlData.pumpStatus = "OFF";
   } else if (controlMoisture < 30) {
-    mlData.ruleEngineOutput = `Critical: Auto-irrigation started`;
-    mlData.pumpStatus = "ON";
-  } else {
-    mlData.ruleEngineOutput = "Optimal: No action required";
     mlData.pumpStatus = "OFF";
+  }
+
+  // 6. Growth Stage AI Simulation
+  if (simulatorConfig.models.growthAI) {
+    growthAge += 1;
+    const growth = calculateGrowthStage(growthAge, data.nitrogen);
+    mlData.growthStage = growth.stage;
+    mlData.growthConfidence = growth.confidence;
+  } else {
+    mlData.growthStage = "AI Disabled";
+    mlData.growthConfidence = 0;
   }
 
   currentSimulatedData = mlData;

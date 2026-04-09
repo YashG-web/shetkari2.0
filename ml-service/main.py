@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File
 from pydantic import BaseModel
 import numpy as np
 import os
@@ -11,6 +11,15 @@ import uvicorn
 try:
     import tensorflow as tf
     HAS_TENSORFLOW = True
+    
+    # Emergency Global Monkey-Patch for Keras version mismatch
+    # This strips 'quantization_config' from Dense layers during deserialization
+    original_dense_init = tf.keras.layers.Dense.__init__
+    def patched_dense_init(self, *args, **kwargs):
+        kwargs.pop('quantization_config', None)
+        return original_dense_init(self, *args, **kwargs)
+    tf.keras.layers.Dense.__init__ = patched_dense_init
+            
 except ImportError:
     HAS_TENSORFLOW = False
     print("⚠️ TensorFlow not found. LSTM model will be disabled.")
@@ -25,6 +34,7 @@ DT_MODEL_PATH = os.path.join(BASE_DIR, "decision_tree_model.pkl")
 RF_MODEL_PATH = os.path.join(BASE_DIR, "random_forest_model.pkl")
 TS_MODEL_PATH = os.path.join(BASE_DIR, "time_series_model.pkl")
 FERTILIZER_MODEL_PATH = os.path.join(BASE_DIR, "fertilizer_model.pkl")
+GROWTH_MODEL_PATH = os.path.join(BASE_DIR, "growth_stage_model.keras")
 
 # Load models globally
 lstm_model = None
@@ -32,10 +42,11 @@ dt_model = None
 rf_model = None
 ts_model = None
 fertilizer_model = None
+growth_model = None
 
 if HAS_TENSORFLOW and os.path.exists(LSTM_MODEL_PATH):
     try:
-        lstm_model = tf.keras.models.load_model(LSTM_MODEL_PATH)
+        lstm_model = tf.keras.models.load_model(LSTM_MODEL_PATH, compile=False, safe_mode=False)
         print("✅ LSTM Model loaded")
     except Exception as e:
         print(f"⚠️ Error loading LSTM: {e}")
@@ -58,6 +69,13 @@ if os.path.exists(TS_MODEL_PATH):
 if os.path.exists(FERTILIZER_MODEL_PATH):
     fertilizer_model = joblib.load(FERTILIZER_MODEL_PATH)
     print(f"✅ Fertilizer Model loaded")
+
+if HAS_TENSORFLOW and os.path.exists(GROWTH_MODEL_PATH):
+    try:
+        growth_model = tf.keras.models.load_model(GROWTH_MODEL_PATH, compile=False, safe_mode=False)
+        print(f"✅ Growth Stage Model loaded")
+    except Exception as e:
+        print(f"⚠️ Error loading Growth Stage model: {e}")
 
 class ModelType(str, Enum):
     LSTM = "lstm"
@@ -106,7 +124,8 @@ def health_check():
             "decision_tree": dt_model is not None,
             "random_forest": rf_model is not None,
             "time_series": ts_model is not None,
-            "fertilizer": fertilizer_model is not None
+            "fertilizer": fertilizer_model is not None,
+            "growth_stage": growth_model is not None
         }
     }
 
@@ -201,7 +220,76 @@ async def predict_forecast(req: ForecastRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+GROWTH_STAGES = [
+    "Young Bud",
+    "Mature Bud",
+    "Early Bloom",
+    "Full Bloom",
+    "Wilted"
+]
+
+GROWTH_RECOMMENDATIONS = {
+    "Young Bud": "Young bud stage - ensure adequate soil moisture and avoid water stress. Monitor for early pests.",
+    "Mature Bud": "Mature bud stage - optimal time for nutrient boosting. Keep environment stable for blooming.",
+    "Early Bloom": "Early bloom stage - protect from extreme temperatures. Soil should be consistently damp.",
+    "Full Bloom": "Full bloom stage - peak beauty and health. Ensure good ventilation and light.",
+    "Wilted": "Wilted stage - bloom cycle ending. Monitor for hydration levels and transition to standard care."
+}
+
+@app.post("/predict/growth-stage")
+async def predict_growth(file: UploadFile = File(...)):
+    if not HAS_TENSORFLOW or not growth_model:
+        raise HTTPException(status_code=503, detail="Growth stage model unavailable")
+    
+    try:
+        # Read and preprocess image
+        contents = await file.read()
+        img = tf.io.decode_image(contents, channels=3)
+        img = tf.image.resize(img, [224, 224])
+        
+        # Pixel Stats for Debugging
+        pixel_mean = float(tf.reduce_mean(img))
+        pixel_std = float(tf.math.reduce_std(img))
+        
+        img = tf.expand_dims(img, axis=0)
+        # REMOVED: (img / 127.5) - 1.0 (EfficientNet handles [0, 255] better if built-in rescaling exists)
+
+        # Predict
+        predictions = growth_model.predict(img, verbose=0)
+        class_idx = np.argmax(predictions[0])
+        confidence = float(np.max(predictions[0]))
+        all_scores = [round(float(s), 4) for s in predictions[0]]
+        
+        # Debug Logs
+        print(f"\n--- Inference Debug ---")
+        print(f"Stats: mean={pixel_mean:.2f}, std={pixel_std:.2f}")
+        print(f"Scores: {all_scores}")
+        print(f"Top: {GROWTH_STAGES[class_idx]} ({confidence:.2%})")
+        print(f"-----------------------\n")
+
+        # Determine stage name
+        if class_idx < len(GROWTH_STAGES):
+            stage = GROWTH_STAGES[class_idx]
+        else:
+            stage = f"Unknown Stage ({class_idx})"
+            
+        recommendation = GROWTH_RECOMMENDATIONS.get(stage, "Continue regular crop monitoring and standard care.")
+        
+        return {
+            "stage": stage,
+            "confidence": round(confidence * 100, 2),
+            "all_scores": all_scores,
+            "recommendation": recommendation,
+            "status": "success"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Image processing failed: {str(e)}")
+
 if __name__ == "__main__":
     import uvicorn
+    print("\n" + "="*50)
+    print("🚀 SHETKARI ML SERVICE v2.0 READY")
+    print("✨ Dynamic Inference & [-1, 1] Preprocessing Active")
+    print("="*50 + "\n")
     uvicorn.run(app, host="0.0.0.0", port=8000)
 

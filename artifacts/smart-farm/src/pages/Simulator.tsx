@@ -196,6 +196,7 @@ export default function Simulator() {
                   { id: 'decisionTree', name: 'Decision Tree', desc: 'Reasoning Insights' },
                   { id: 'timeSeries', name: 'Time Series', desc: '7-Hour Forecasting' },
                   { id: 'ruleEngine', name: 'Rule Engine', desc: 'Automation Layer' },
+                  { id: 'growthAI', name: 'Growth Stage AI', desc: 'Real-time Crop Analysis' },
                 ].map((model) => (
                   <div key={model.id} className="flex items-center justify-between group">
                     <div className="space-y-0.5">
@@ -409,6 +410,7 @@ export default function Simulator() {
                           <TableHead className="font-bold">Soil (%)</TableHead>
                           <TableHead className="font-bold">Temp (°C)</TableHead>
                           <TableHead className="font-bold">Rain</TableHead>
+                          <TableHead className="font-bold">Growth</TableHead>
                           <TableHead className="font-bold">AI Analytics</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -441,6 +443,14 @@ export default function Simulator() {
                                 )}
                               </TableCell>
                               <TableCell>
+                                  {localConfig.models.growthAI && (
+                                    <div className="flex flex-col gap-0.5">
+                                      <span className="text-xs font-bold text-emerald-600">{row.growthStage}</span>
+                                      <span className="text-[10px] text-muted-foreground">{row.growthConfidence}% conf.</span>
+                                    </div>
+                                  )}
+                                </TableCell>
+                                <TableCell>
                                 <div className="flex flex-wrap gap-2">
                                   {localConfig.models.decisionTree && (
                                     <Badge variant="secondary" className="bg-indigo-100 text-indigo-700 border-none font-bold text-[10px]">
@@ -537,8 +547,43 @@ export default function Simulator() {
                      </p>
                    </CardContent>
                 </Card>
-                <Card className="glass-card">
-                   <CardHeader>
+                 <Card className="glass-card bg-emerald-50/20 dark:bg-emerald-500/5">
+                    <CardHeader>
+                      <CardTitle className="text-lg flex items-center gap-2 text-emerald-600">
+                        <Activity className="w-5 h-5" />
+                        Growth Stage Analysis
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="flex justify-between items-end">
+                        <div className="space-y-1">
+                          <span className="text-xs font-bold text-muted-foreground uppercase">Current Stage</span>
+                          <div className="text-2xl font-black text-foreground">{latestData?.growthStage || "Initial"}</div>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-xs font-bold text-muted-foreground uppercase">Confidence</span>
+                          <div className="text-lg font-bold text-emerald-500">{latestData?.growthConfidence || 0}%</div>
+                        </div>
+                      </div>
+                      
+                      {/* Visual Growth Progress */}
+                      <div className="space-y-1.5 pt-2">
+                        <div className="flex justify-between text-[10px] font-bold text-muted-foreground italic">
+                          <span>Seedling</span>
+                          <span>Harvest</span>
+                        </div>
+                        <div className="h-3 bg-muted rounded-full overflow-hidden border border-emerald-100 dark:border-emerald-900/30">
+                          <motion.div 
+                            className="h-full bg-gradient-to-r from-emerald-400 to-emerald-600" 
+                            initial={{ width: 0 }}
+                            animate={{ width: `${(Math.min(4, ["Young Bud", "Mature Bud", "Early Bloom", "Full Bloom", "Wilthed"].indexOf(latestData?.growthStage || "") + 1) / 5) * 100}%` }}
+                          />
+                        </div>
+                      </div>
+                    </CardContent>
+                 </Card>
+                 <Card className="glass-card">
+                    <CardHeader>
                      <CardTitle className="text-lg flex items-center gap-2">
                        <Info className="w-5 h-5 text-primary" />
                        Simulator Hint

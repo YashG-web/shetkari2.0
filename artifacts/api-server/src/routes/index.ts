@@ -5,6 +5,7 @@ import weatherRouter from "./weather";
 import recommendationRouter from "./recommendation";
 import simulatorRouter from "./simulator";
 import predictRouter from "./predict";
+import growthStageRouter from "./growth-stage";
 
 const router: IRouter = Router();
 
@@ -14,5 +15,6 @@ router.use(weatherRouter);
 router.use(recommendationRouter);
 router.use(simulatorRouter);
 router.use(predictRouter);
+router.use(growthStageRouter);
 
 export default router;

@@ -1,4 +1,6 @@
 import { useState, useRef } from 'react';
+import { useMutation } from '@tanstack/react-query';
+import { useToast } from '@/hooks/use-toast';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useTranslation } from '@/lib/translations';
 import { useAppStore } from '@/store/use-app-store';
@@ -7,20 +9,60 @@ import { UploadCloud, Camera, CheckCircle2, Volume2, Loader2 } from 'lucide-reac
 import { motion, AnimatePresence } from 'framer-motion';
 
 type AnalysisResult = {
-  issue: string;
   stage: string;
-  suggestions: string[];
+  confidence: number;
+  recommendation: string;
 } | null;
 
 export default function CropAnalysis() {
   const { language } = useAppStore();
   const tr = useTranslation();
+  const { toast } = useToast();
   const { speak, isPlaying } = useTTS();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [result, setResult] = useState<AnalysisResult>(null);
+
+  const { mutate: analyzeImage, isPending: isAnalyzing } = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const response = await fetch('/api/growth-stage', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.details || 'Analysis failed');
+      }
+
+      return response.json();
+    },
+    onSuccess: (data) => {
+      console.log('Analysis Success:', data);
+      setResult({
+        stage: data.stage,
+        confidence: data.confidence,
+        recommendation: data.recommendation,
+      });
+      toast({
+        title: 'Analysis Complete',
+        description: `Crop is in ${data.stage} stage.`,
+      });
+    },
+    onError: (error: Error) => {
+      console.error('Analysis Error:', error);
+      toast({
+        title: 'Analysis Failed',
+        description: error.message,
+        variant: 'destructive',
+      });
+      setPreviewUrl(null);
+    },
+  });
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -30,27 +72,14 @@ export default function CropAnalysis() {
     const url = URL.createObjectURL(file);
     setPreviewUrl(url);
     
-    // Simulate AI Analysis
-    setIsAnalyzing(true);
+    // Trigger Real AI Analysis
     setResult(null);
-    
-    setTimeout(() => {
-      setIsAnalyzing(false);
-      setResult({
-        issue: "Early Blight (Fungal Infection)",
-        stage: "Mid-growth",
-        suggestions: [
-          "Apply Copper-based fungicide immediately",
-          "Ensure better air circulation between plants",
-          "Avoid overhead watering to keep leaves dry"
-        ]
-      });
-    }, 2500);
+    analyzeImage(file);
   };
 
   const handleSpeak = () => {
     if (!result) return;
-    speak(`Analysis complete. The detected issue is ${result.issue}. The crop is in the ${result.stage} stage. Suggested actions are: ${result.suggestions.join(', ')}`);
+    speak(`Analysis complete. The crop is in the ${result.stage} stage with ${result.confidence} percent confidence. The recommendation is: ${result.recommendation}`);
   };
 
   return (
@@ -60,7 +89,7 @@ export default function CropAnalysis() {
           <h1 className="text-3xl font-display font-bold text-foreground">
             {tr('nav.crop_analysis', language)}
           </h1>
-          <p className="text-muted-foreground mt-2">Upload a photo of your crop to instantly identify diseases and get treatment suggestions.</p>
+          <p className="text-muted-foreground mt-2">Upload a photo of your crop to instantly identify its current growth stage and get optimization tips.</p>
         </div>
 
         <div className="grid md:grid-cols-2 gap-8">
@@ -94,7 +123,7 @@ export default function CropAnalysis() {
                     <UploadCloud className="w-10 h-10 text-primary" />
                   </div>
                   <h3 className="text-xl font-bold mb-2">Upload Crop Image</h3>
-                  <p className="text-muted-foreground mb-8 text-sm px-8">Drag and drop or click to upload a clear photo of the affected leaves.</p>
+                  <p className="text-muted-foreground mb-8 text-sm px-8">Drag and drop or click to upload a clear photo of your plant's development area.</p>
                   
                   <div className="flex gap-4">
                     <button 
@@ -143,7 +172,7 @@ export default function CropAnalysis() {
                 >
                   <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
                   <h3 className="text-xl font-bold text-foreground">Analyzing Image...</h3>
-                  <p className="text-muted-foreground mt-2">Our AI is looking for signs of disease or pests.</p>
+                  <p className="text-muted-foreground mt-2">Our AI is analyzing crop development patterns and flowering stages.</p>
                 </motion.div>
               )}
 
@@ -166,28 +195,36 @@ export default function CropAnalysis() {
                   </div>
 
                   <div className="space-y-6">
-                    <div className="bg-red-50 border border-red-100 rounded-2xl p-5">
-                      <p className="text-red-900/60 font-semibold text-xs uppercase tracking-wider mb-1">Detected Issue</p>
-                      <p className="text-red-900 font-bold text-lg">{result.issue}</p>
+                    <div className="bg-primary/5 border border-primary/10 rounded-2xl p-5">
+                      <p className="text-primary/60 font-semibold text-xs uppercase tracking-wider mb-1">🌼 Growth Stage</p>
+                      <p className="text-foreground font-bold text-lg">{result.stage}</p>
                     </div>
                     
-                    <div className="bg-slate-50 border border-slate-100 rounded-2xl p-5">
-                      <p className="text-slate-500 font-semibold text-xs uppercase tracking-wider mb-1">Crop Stage</p>
-                      <p className="text-slate-900 font-bold text-lg">{result.stage}</p>
+                    <div className="bg-slate-50 border border-slate-100 rounded-2xl p-5 relative overflow-hidden">
+                      <p className="text-slate-500 font-semibold text-xs uppercase tracking-wider mb-1">📊 Confidence</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-slate-900 font-bold text-lg">{result.confidence}%</p>
+                        {result.confidence < 40 && (
+                          <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-600 border-amber-200">
+                            Low Confidence
+                          </Badge>
+                        )}
+                      </div>
+                      {result.confidence < 40 && (
+                        <p className="text-[10px] text-amber-500 mt-2 italic leading-tight">
+                          * Prediction is uncertain. Ensure the photo is clear and well-lit.
+                        </p>
+                      )}
                     </div>
 
-                    <div>
+                    <div className="bg-muted/30 rounded-2xl p-5">
                       <p className="text-foreground font-bold mb-3 flex items-center gap-2">
                         <CheckCircle2 className="w-5 h-5 text-primary" />
-                        Treatment Suggestions
+                        AI Recommendation
                       </p>
-                      <ul className="space-y-2">
-                        {result.suggestions.map((s, i) => (
-                          <li key={i} className="flex gap-3 text-muted-foreground text-sm p-3 bg-muted/30 rounded-xl">
-                            <span className="font-bold text-primary">{i+1}.</span> {s}
-                          </li>
-                        ))}
-                      </ul>
+                      <p className="text-muted-foreground text-sm leading-relaxed">
+                        {result.recommendation}
+                      </p>
                     </div>
                   </div>
                 </motion.div>
