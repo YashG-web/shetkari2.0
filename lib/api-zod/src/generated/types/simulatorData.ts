@@ -20,4 +20,7 @@ export interface SimulatorData {
   rfOutput?: string;
   regressionOutput?: number;
   ruleEngineOutput?: string;
+  fertilizerRecommendation?: string;
+  fertilizerSource?: 'AI' | 'Fallback';
 }
+

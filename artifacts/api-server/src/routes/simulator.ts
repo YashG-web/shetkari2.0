@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { GetSimulatorConfigResponse, UpdateSimulatorConfigBody, GetLatestSimulatorDataResponse } from "@workspace/api-zod";
-import { simulatorConfig, currentSimulatedData, updateConfig, calculateStep } from "../lib/shared-state";
+import { simulatorConfig, currentSimulatedData, updateConfig, calculateStep, runMLInference } from "../lib/shared-state";
 
 const router: IRouter = Router();
 
@@ -8,9 +8,13 @@ router.get("/simulator/config", (req, res) => {
   res.json(GetSimulatorConfigResponse.parse(simulatorConfig));
 });
 
-router.post("/simulator/config", (req, res) => {
+router.post("/simulator/config", async (req, res) => {
   const body = UpdateSimulatorConfigBody.parse(req.body);
   updateConfig(body);
+  
+  // Instant trigger for real-time responsiveness
+  runMLInference().catch(err => console.error("Immediate ML trigger failed", err));
+  
   res.json(GetSimulatorConfigResponse.parse(simulatorConfig));
 });
 

@@ -224,7 +224,10 @@ export const GetLatestSimulatorDataResponse = zod.object({
   rfOutput: zod.string().optional(),
   regressionOutput: zod.number().optional(),
   ruleEngineOutput: zod.string().optional(),
+  fertilizerRecommendation: zod.string().optional(),
+  fertilizerSource: zod.enum(["AI", "Fallback"]).optional(),
 });
+
 
 /**
  * @summary Generate bulk simulated data

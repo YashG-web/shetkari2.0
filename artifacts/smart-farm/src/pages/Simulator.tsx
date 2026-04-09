@@ -30,8 +30,10 @@ export default function Simulator() {
   const [bulkDuration, setBulkDuration] = useState<"1-month" | "3-months" | "6-months" | "1-year">("1-month");
   const [history, setHistory] = useState<any[]>([]);
   
-  // Local state for immediate UI feedback
+  // Local state for immediate UI feedback and drafting
   const [localConfig, setLocalConfig] = useState<any>(null);
+  const [draftConfig, setDraftConfig] = useState<any>(null);
+  const [isDirty, setIsDirty] = useState(false);
 
   const { data: serverConfig, isSuccess: isConfigLoaded } = useGetSimulatorConfig();
   
@@ -39,6 +41,8 @@ export default function Simulator() {
   useEffect(() => {
     if (serverConfig) {
       setLocalConfig(serverConfig);
+      setDraftConfig(serverConfig);
+      setIsDirty(false);
     }
   }, [serverConfig]);
 
@@ -46,6 +50,8 @@ export default function Simulator() {
     mutation: {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getGetSimulatorConfigQueryKey() });
+        setIsDirty(false);
+        toast.success("Simulation parameters updated");
       }
     }
   });
@@ -54,7 +60,7 @@ export default function Simulator() {
     query: { 
       queryKey: getGetLatestSimulatorDataQueryKey(),
       enabled: isSimulating, 
-      refetchInterval: 3000,
+      refetchInterval: 400, // Near-realtime polling
     }
   });
 
@@ -63,6 +69,7 @@ export default function Simulator() {
   // Add to history when new data arrives
   useEffect(() => {
     if (latestData) {
+      console.log("📥 Fetched Live Stream Data:", latestData);
       setHistory(prev => [latestData, ...prev].slice(0, 50));
     }
   }, [latestData]);
@@ -77,20 +84,32 @@ export default function Simulator() {
       }
     };
     setLocalConfig(newConfig);
+    setDraftConfig(newConfig);
     updateConfigMutation.mutate({ data: newConfig });
   };
 
-  const handleControlChange = (key: string, value: any) => {
-    if (!localConfig) return;
+  const handleControlChange = (key: string, value: any, instant = false) => {
+    if (!draftConfig) return;
     const newConfig = {
-      ...localConfig,
+      ...draftConfig,
       controls: {
-        ...localConfig.controls,
+        ...draftConfig.controls,
         [key]: value
       }
     };
-    setLocalConfig(newConfig);
-    updateConfigMutation.mutate({ data: newConfig });
+    setDraftConfig(newConfig);
+    setIsDirty(true);
+
+    if (instant) {
+      setLocalConfig(newConfig);
+      updateConfigMutation.mutate({ data: newConfig });
+    }
+  };
+
+  const applyChanges = () => {
+    if (!draftConfig) return;
+    setLocalConfig(draftConfig);
+    updateConfigMutation.mutate({ data: draftConfig });
   };
 
   const handleBulkGenerate = async () => {
@@ -111,7 +130,7 @@ export default function Simulator() {
     }
   };
 
-  if (!isConfigLoaded || !localConfig) return <div className="p-8 text-center text-muted-foreground animate-pulse">Establishing secure link to simulation engine...</div>;
+  if (!isConfigLoaded || !draftConfig) return <div className="p-8 text-center text-muted-foreground animate-pulse">Establishing secure link to simulation engine...</div>;
 
   return (
     <AppLayout>
@@ -127,6 +146,15 @@ export default function Simulator() {
             </p>
           </div>
           <div className="flex items-center gap-3">
+            {isDirty && (
+              <Button 
+                variant="outline" 
+                onClick={() => { setDraftConfig(localConfig); setIsDirty(false); }}
+                className="rounded-xl border-dashed"
+              >
+                Reset
+              </Button>
+            )}
             <Button 
               size="lg" 
               variant={isSimulating ? "destructive" : "default"}
@@ -175,7 +203,7 @@ export default function Simulator() {
                       <div className="text-xs text-muted-foreground">{model.desc}</div>
                     </div>
                     <Switch 
-                      checked={localConfig.models[model.id]}
+                      checked={draftConfig.models[model.id]}
                       onCheckedChange={() => handleToggleModel(model.id)}
                       className="data-[state=checked]:bg-primary"
                     />
@@ -186,26 +214,36 @@ export default function Simulator() {
 
             {/* Environment Manipulation */}
             <Card className="glass-card">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-xl text-primary">
-                  <Settings2 className="w-6 h-6" />
-                  Environment Controls
-                </CardTitle>
+              <CardHeader className="border-b border-border/10 pb-4">
+                <div className="flex justify-between items-center">
+                  <CardTitle className="flex items-center gap-2 text-xl text-primary">
+                    <Settings2 className="w-6 h-6" />
+                    Env Controls
+                  </CardTitle>
+                  <Button 
+                    size="sm" 
+                    disabled={!isDirty} 
+                    onClick={applyChanges}
+                    className="h-8 rounded-lg font-bold"
+                  >
+                    Apply Changes
+                  </Button>
+                </div>
               </CardHeader>
-              <CardContent className="space-y-8">
+              <CardContent className="space-y-8 pt-6">
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
                     <span className="text-sm font-bold flex items-center gap-2">
                        <CloudRain className="w-4 h-4 text-blue-500" />
                        Rain Condition
                     </span>
-                    <Badge variant={localConfig.controls.rain ? "default" : "secondary"} className="rounded-md">
-                      {localConfig.controls.rain ? "RAINING" : "NO RAIN"}
+                    <Badge variant={draftConfig.controls.rain ? "default" : "secondary"} className="rounded-md">
+                      {draftConfig.controls.rain ? "RAINING" : "NO RAIN"}
                     </Badge>
                   </div>
                   <Switch 
-                    checked={localConfig.controls.rain}
-                    onCheckedChange={(val) => handleControlChange('rain', val)}
+                    checked={draftConfig.controls.rain}
+                    onCheckedChange={(val) => handleControlChange('rain', val, true)}
                   />
                 </div>
 
@@ -213,11 +251,11 @@ export default function Simulator() {
                   <div className="flex justify-between">
                     <span className="text-sm font-bold flex items-center gap-2">
                       <Thermometer className="w-4 h-4 text-orange-500" />
-                      Temperature ({localConfig.controls.temperature}°C)
+                      Temperature ({draftConfig.controls.temperature}°C)
                     </span>
                   </div>
                   <Slider 
-                    value={[localConfig.controls.temperature]}
+                    value={[draftConfig.controls.temperature]}
                     min={0} max={50} step={1}
                     onValueChange={([val]) => handleControlChange('temperature', val)}
                   />
@@ -227,11 +265,11 @@ export default function Simulator() {
                   <div className="flex justify-between">
                     <span className="text-sm font-bold flex items-center gap-2">
                       <Wind className="w-4 h-4 text-teal-500" />
-                      Humidity ({localConfig.controls.humidity}%)
+                      Humidity ({draftConfig.controls.humidity}%)
                     </span>
                   </div>
                   <Slider 
-                    value={[localConfig.controls.humidity]}
+                    value={[draftConfig.controls.humidity]}
                     min={0} max={100} step={1}
                     onValueChange={([val]) => handleControlChange('humidity', val)}
                   />
@@ -241,40 +279,68 @@ export default function Simulator() {
                   <div className="flex justify-between">
                     <span className="text-sm font-bold flex items-center gap-2">
                       <Droplets className="w-4 h-4 text-blue-400" />
-                      Soil Moisture ({localConfig.controls.soilMoisture}%)
+                      Soil Moisture ({draftConfig.controls.soilMoisture}%)
                     </span>
                   </div>
                   <Slider 
-                    value={[localConfig.controls.soilMoisture]}
+                    value={[draftConfig.controls.soilMoisture]}
                     min={0} max={100} step={1}
                     onValueChange={([val]) => handleControlChange('soilMoisture', val)}
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                   <div className="space-y-2">
-                      <span className="text-xs font-bold flex items-center gap-1">
-                        <Beaker className="w-3 h-3 text-purple-500" /> NPK
-                      </span>
-                      <div className="flex gap-1">
-                         <input 
-                           type="number" 
-                           value={localConfig.controls.nitrogen} 
-                           onChange={(e) => handleControlChange('nitrogen', Number(e.target.value))}
-                           className="w-full bg-muted border-none rounded-md p-1 text-xs"
-                         />
+                <div className="space-y-6 pt-2 border-t border-border/10">
+                   <div className="flex items-center gap-2">
+                      <Beaker className="w-4 h-4 text-purple-500" /> 
+                      <span className="text-sm font-bold">Soil Nutrients (N-P-K)</span>
+                   </div>
+                   
+                   <div className="space-y-4">
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider">
+                          <label>Nitrogen (N)</label>
+                          <span className="text-primary">{draftConfig.controls.nitrogen} mg/kg</span>
+                        </div>
+                        <Slider 
+                           value={[draftConfig.controls.nitrogen]}
+                           min={0} max={140} step={1}
+                           onValueChange={([val]) => handleControlChange('nitrogen', val)}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider">
+                          <label>Phosphorus (P)</label>
+                          <span className="text-primary">{draftConfig.controls.phosphorus} mg/kg</span>
+                        </div>
+                        <Slider 
+                           value={[draftConfig.controls.phosphorus]}
+                           min={0} max={140} step={1}
+                           onValueChange={([val]) => handleControlChange('phosphorus', val)}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider">
+                          <label>Potassium (K)</label>
+                          <span className="text-primary">{draftConfig.controls.potassium} mg/kg</span>
+                        </div>
+                        <Slider 
+                           value={[draftConfig.controls.potassium]}
+                           min={0} max={140} step={1}
+                           onValueChange={([val]) => handleControlChange('potassium', val)}
+                        />
                       </div>
                    </div>
-                   <div className="space-y-2">
+
+                   <div className="space-y-2 pt-2">
                       <span className="text-xs font-bold flex items-center gap-1">
-                        <FlaskConical className="w-3 h-3 text-emerald-500" /> pH
+                        <FlaskConical className="w-3 h-3 text-emerald-500" /> Soil pH ({draftConfig.controls.pH})
                       </span>
-                      <input 
-                        type="number" 
-                        step="0.1"
-                        value={localConfig.controls.pH} 
-                        onChange={(e) => handleControlChange('pH', Number(e.target.value))}
-                        className="w-full bg-muted border-none rounded-md p-1 text-xs"
+                      <Slider 
+                         value={[draftConfig.controls.pH]}
+                         min={4} max={10} step={0.1}
+                         onValueChange={([val]) => handleControlChange('pH', val)}
                       />
                    </div>
                 </div>
@@ -411,34 +477,79 @@ export default function Simulator() {
                   </div>
                </CardContent>
             </Card>
-
             {/* Logic Info */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-               <Card className="glass-card">
-                  <CardHeader>
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <Scale className="w-5 h-5 text-primary" />
-                      Rule Engine Logic
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm font-medium text-muted-foreground bg-muted/30 p-4 rounded-xl border italic">
-                      "{latestData?.ruleEngineOutput || "Awaiting simulation..."}"
-                    </p>
-                  </CardContent>
-               </Card>
-               <Card className="glass-card">
-                  <CardHeader>
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <Info className="w-5 h-5 text-primary" />
-                      Simulator Hint
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="text-sm text-muted-foreground">
-                    Try turning on **Rain** and watch the **Soil Moisture** increase over time. High **Temperature** will accelerate evaporation.
-                  </CardContent>
-               </Card>
-            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <Card className={`glass-card border-l-4 transition-all duration-500 ${
+                  latestData?.fertilizerSource === "AI" 
+                    ? "border-l-emerald-500 bg-emerald-50/10 dark:bg-emerald-500/5 shadow-emerald-100/20" 
+                    : "border-l-orange-500 bg-orange-50/10 dark:bg-orange-500/5"
+                }`}>
+                   <CardHeader>
+                     <CardTitle className={`text-lg flex items-center gap-2 ${
+                       latestData?.fertilizerSource === "AI" ? "text-emerald-600 dark:text-emerald-400" : "text-orange-600 dark:text-orange-400"
+                     }`}>
+                       <FlaskConical className="w-5 h-5" />
+                       AI Fertilizer Forecast
+                     </CardTitle>
+                   </CardHeader>
+                   <CardContent>
+                     <div className="space-y-3">
+                       <div className="relative group">
+                         <p className="text-sm font-bold text-foreground bg-white/50 dark:bg-black/40 p-3 rounded-xl border border-border/50 min-h-[60px] flex flex-col items-center justify-center text-center shadow-inner">
+                           <span className="text-xs text-muted-foreground uppercase tracking-tight mb-1">Recommended Plan</span>
+                           {latestData?.fertilizerRecommendation || "Awaiting AI Analysis..."}
+                         </p>
+                       </div>
+                       
+                       <div className="flex items-center justify-between pt-1">
+                          <Badge variant="outline" className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0 ${
+                            latestData?.fertilizerSource === "AI" ? "border-emerald-200 text-emerald-700" : "border-orange-200 text-orange-700"
+                          }`}>
+                            Source: {latestData?.fertilizerSource || "Calculating"}
+                          </Badge>
+                          
+                          {latestData?.fertilizerSource === "AI" ? (
+                            <div className="flex items-center gap-1 text-[9px] font-bold text-emerald-600 animate-pulse">
+                              <Zap className="w-3 h-3 fill-current" />
+                              OPTIMIZED
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1 text-[9px] font-bold text-orange-600">
+                              <Info className="w-3 h-3" />
+                              STABLE
+                            </div>
+                          )}
+                       </div>
+                     </div>
+                   </CardContent>
+                </Card>
+
+                <Card className="glass-card">
+                   <CardHeader>
+                     <CardTitle className="text-lg flex items-center gap-2">
+                       <Scale className="w-5 h-5 text-primary" />
+                       Rule Engine Logic
+                     </CardTitle>
+                   </CardHeader>
+                   <CardContent>
+                     <p className="text-sm font-medium text-muted-foreground bg-muted/30 p-4 rounded-xl border italic">
+                       "{latestData?.ruleEngineOutput || "Awaiting simulation..."}"
+                     </p>
+                   </CardContent>
+                </Card>
+                <Card className="glass-card">
+                   <CardHeader>
+                     <CardTitle className="text-lg flex items-center gap-2">
+                       <Info className="w-5 h-5 text-primary" />
+                       Simulator Hint
+                     </CardTitle>
+                   </CardHeader>
+                   <CardContent className="text-sm text-muted-foreground">
+                     Try turning on **Rain** and watch the **Soil Moisture** increase over time. High **Temperature** will accelerate evaporation.
+                   </CardContent>
+                </Card>
+             </div>
+
           </div>
 
         </div>
