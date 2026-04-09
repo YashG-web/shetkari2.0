@@ -37,7 +37,6 @@ paths:
       operationId: predictMoisture
       tags: [sensor]
       summary: Predict future soil moisture (LSTM)
-      description: Returns a predicted soil moisture value using the LSTM model.
       responses:
         "200":
           description: Prediction result
@@ -118,13 +117,11 @@ paths:
                   status: { type: string }
                 required: [forecast, status]
 
-
   /sensor-data:
     get:
       operationId: getSensorData
       tags: [sensor]
       summary: Get latest IoT sensor readings
-      description: Returns simulated real-time sensor data
       responses:
         "200":
           description: Sensor data
@@ -138,7 +135,6 @@ paths:
       operationId: getWeather
       tags: [weather]
       summary: Get weather data and alerts
-      description: Returns current weather conditions and active alerts
       responses:
         "200":
           description: Weather data
@@ -152,7 +148,6 @@ paths:
       operationId: getRecommendation
       tags: [recommendation]
       summary: Get crop recommendations
-      description: Returns crop health summary, issues, and suggested actions
       responses:
         "200":
           description: Crop recommendation
@@ -166,7 +161,6 @@ paths:
       operationId: analyzeGrowthStage
       tags: [recommendation]
       summary: Analyze crop growth stage from image
-      description: Uploads a crop image to identify its current development stage using AI.
       requestBody:
         required: true
         content:
@@ -258,37 +252,25 @@ components:
     HealthStatus:
       type: object
       properties:
-        status:
-          type: string
-      required:
-        - status
+        status: { type: string }
+      required: [status]
 
     SensorData:
       type: object
       properties:
-        soilMoisture:
-          type: number
-          description: Soil moisture percentage (0-100)
-        temperature:
-          type: number
-          description: Temperature in Celsius
-        humidity:
-          type: number
-          description: Humidity percentage (0-100)
+        soilMoisture: { type: number, description: "Soil moisture percentage (0-100)" }
+        temperature: { type: number, description: "Temperature in Celsius" }
+        humidity: { type: number, description: "Humidity percentage (0-100)" }
         nitrogen: { type: number }
         phosphorus: { type: number }
         potassium: { type: number }
-        pumpStatus:
-          type: string
-          enum: [ON, OFF]
+        pumpStatus: { type: string, enum: [ON, OFF] }
         connectedAt: { type: string }
-        rfPrediction:
-          type: number
-          description: Random Forest soil moisture prediction
+        rfPrediction: { type: number, description: "Random Forest soil moisture prediction" }
         dtInsights:
           type: array
           items: { type: string }
-          description: Decision Tree explainability reasons
+          description: "Decision Tree explainability reasons"
         tsForecastData:
           type: array
           items:
@@ -296,124 +278,62 @@ components:
             properties:
               time: { type: string }
               value: { type: number }
-          description: Time Series future trend data
-        ruleEngineOutput:
-          type: string
-          description: Automation status message from the Rule Engine
-        fertilizerRecommendation:
-          type: string
-          description: Latest fertilizer recommendation from ML/fallback logic
+          description: "Time Series future trend data"
+        ruleEngineOutput: { type: string, description: "Automation status message from the Rule Engine" }
+        fertilizerRecommendation: { type: string, description: "Latest fertilizer recommendation from ML/fallback logic" }
         fertilizerSource:
           type: string
           enum: [AI, Fallback]
-          description: Indicates whether fertilizer recommendation came from AI or fallback rules
-        growthStage:
-          type: string
-          description: Predicted crop growth stage
-        growthConfidence:
-          type: number
-          description: Confidence level of the growth stage prediction
+          description: "Indicates whether fertilizer recommendation came from AI or fallback rules"
+        growthStage: { type: string, description: "Predicted crop growth stage" }
+        growthConfidence: { type: number, description: "Confidence level of the growth stage prediction" }
         allScores:
           type: array
           items: { type: number }
-          description: Probability distribution across all growth stages
-      required:
-        - soilMoisture
-        - temperature
-        - humidity
-        - nitrogen
-        - phosphorus
-        - potassium
-        - pumpStatus
-        - connectedAt
-
+          description: "Probability distribution across all growth stages"
+      required: [soilMoisture, temperature, humidity, nitrogen, phosphorus, potassium, pumpStatus, connectedAt]
 
     WeatherData:
       type: object
       properties:
-        condition:
-          type: string
-          description: Short weather condition label
-        icon:
-          type: string
-          description: Weather icon identifier
-        description:
-          type: string
-          description: Weather description text
+        condition: { type: string, description: "Short weather condition label" }
+        icon: { type: string, description: "Weather icon identifier" }
+        description: { type: string, description: "Weather description text" }
         alerts:
           type: array
-          items:
-            $ref: "#/components/schemas/WeatherAlert"
-      required:
-        - condition
-        - icon
-        - description
-        - alerts
+          items: { $ref: "#/components/schemas/WeatherAlert" }
+      required: [condition, icon, description, alerts]
 
     WeatherAlert:
       type: object
       properties:
-        type:
-          type: string
-          enum: [heavy-rain, storm, drought, frost, normal]
-        message:
-          type: string
-        severity:
-          type: string
-          enum: [low, medium, high]
-      required:
-        - type
-        - message
-        - severity
+        type: { type: string, enum: [heavy-rain, storm, drought, frost, normal] }
+        message: { type: string }
+        severity: { type: string, enum: [low, medium, high] }
+      required: [type, message, severity]
 
     RecommendationData:
       type: object
       properties:
-        cropCondition:
-          type: string
-          description: Overall crop condition summary
-        identifiedIssue:
-          type: string
-          description: Main issue identified
-        riskLevel:
-          type: string
-          enum: [low, medium, high]
+        cropCondition: { type: string, description: "Overall crop condition summary" }
+        identifiedIssue: { type: string, description: "Main issue identified" }
+        riskLevel: { type: string, enum: [low, medium, high] }
         suggestedActions:
           type: array
-          items:
-            type: string
-          description: List of recommended actions
-        fertilizerRecommendation:
-          $ref: "#/components/schemas/FertilizerRecommendation"
-      required:
-        - cropCondition
-        - identifiedIssue
-        - riskLevel
-        - suggestedActions
-        - fertilizerRecommendation
+          items: { type: string }
+          description: "List of recommended actions"
+        fertilizerRecommendation: { $ref: "#/components/schemas/FertilizerRecommendation" }
+      required: [cropCondition, identifiedIssue, riskLevel, suggestedActions, fertilizerRecommendation]
 
     FertilizerRecommendation:
       type: object
       properties:
-        name:
-          type: string
-        npkRatio:
-          type: string
-          description: NPK ratio e.g. 10-26-26
-        usageInfo:
-          type: string
-        buyLink:
-          type: string
-          description: External purchase URL
-        platform:
-          type: string
-          description: Platform name e.g. Amazon
-      required:
-        - name
-        - npkRatio
-        - usageInfo
-        - buyLink
-        - platform
+        name: { type: string }
+        npkRatio: { type: string, description: "NPK ratio e.g. 10-26-26" }
+        usageInfo: { type: string }
+        buyLink: { type: string, description: "External purchase URL" }
+        platform: { type: string, description: "Platform name e.g. Amazon" }
+      required: [name, npkRatio, usageInfo, buyLink, platform]
 
     SimulatorConfig:
       type: object
@@ -453,29 +373,30 @@ components:
         phosphorus: { type: number }
         potassium: { type: number }
         pH: { type: number }
-        lstmOutput: { type: number }
-        rfOutput: { type: string }
         regressionOutput: { type: number }
         ruleEngineOutput: { type: string }
+        rfPrediction: { type: number }
+        dtInsights: { type: array, items: { type: string } }
+        tsForecastData:
+          type: array
+          items:
+            type: object
+            properties:
+              time: { type: string }
+              value: { type: number }
+        fertilizerRecommendation: { type: string }
+        fertilizerSource: { type: string, enum: [AI, Fallback] }
         growthStage: { type: string }
         growthConfidence: { type: number }
-        allScores:
-          type: array
-          items: { type: number }
+        allScores: { type: array, items: { type: number } }
       required: [timestamp, soilMoisture, temperature, humidity, rain, nitrogen, phosphorus, potassium, pH]
 
     GrowthStageResponse:
       type: object
       properties:
-        stage:
-          type: string
-        confidence:
-          type: number
-        all_scores:
-          type: array
-          items: { type: number }
-        recommendation:
-          type: string
-        status:
-          type: string
+        stage: { type: string }
+        confidence: { type: number }
+        all_scores: { type: array, items: { type: number } }
+        recommendation: { type: string }
+        status: { type: string }
       required: [stage, confidence, recommendation, status]

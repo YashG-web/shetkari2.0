@@ -49,8 +49,8 @@ export function getRuleBasedFertilizerRecommendation(data: {
 export let simulatorConfig = {
   models: {
     randomForest: true,
-    decisionTree: true,
-    timeSeries: true,
+    regression: true,
+    lstm: true,
     ruleEngine: true,
     growthAI: true,
   },
@@ -282,15 +282,15 @@ export async function runMLInference() {
       controlMoisture = mlData.rfPrediction;
     }
 
-    // 2. Decision Tree Reasoning
-    if (simulatorConfig.models.decisionTree) {
+    // 2. Decision Tree Reasoning (Now under Regression mapping)
+    if (simulatorConfig.models.regression) {
       mlData.dtInsights = generateDTInsights(controlMoisture, data.temperature, data.humidity, data.rain);
     } else {
       mlData.dtInsights = ["AI Reasoner disabled"];
     }
     
-    // 3. Time Series Forecasting
-    if (simulatorConfig.models.timeSeries) {
+    // 3. LSTM/Time Series Forecasting
+    if (simulatorConfig.models.lstm) {
       const forecast: { time: string, value: number }[] = [];
       const tsResponse = await axios.post(`${ML_SERVICE_URL}/predict/forecast`, {
         lags: [controlMoisture, controlMoisture * 0.99, controlMoisture * 0.98]

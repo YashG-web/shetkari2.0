@@ -16,7 +16,6 @@ export const HealthCheckResponse = zod.object({
 });
 
 /**
- * Returns a predicted soil moisture value using the LSTM model.
  * @summary Predict future soil moisture (LSTM)
  */
 export const PredictMoistureResponse = zod.object({
@@ -67,7 +66,6 @@ export const PredictForecastResponse = zod.object({
 });
 
 /**
- * Returns simulated real-time sensor data
  * @summary Get latest IoT sensor readings
  */
 export const GetSensorDataResponse = zod.object({
@@ -96,24 +94,32 @@ export const GetSensorDataResponse = zod.object({
     )
     .optional()
     .describe("Time Series future trend data"),
-  ruleEngineOutput: zod.string().optional().describe("Automation status message from the Rule Engine"),
+  ruleEngineOutput: zod
+    .string()
+    .optional()
+    .describe("Automation status message from the Rule Engine"),
   fertilizerRecommendation: zod
     .string()
     .optional()
-    .describe("Latest fertilizer recommendation from ML/fallback logic"),
+    .describe("Latest fertilizer recommendation from ML\/fallback logic"),
   fertilizerSource: zod
     .enum(["AI", "Fallback"])
     .optional()
-    .describe("Indicates whether fertilizer recommendation came from AI or fallback rules"),
+    .describe(
+      "Indicates whether fertilizer recommendation came from AI or fallback rules",
+    ),
   growthStage: zod.string().optional().describe("Predicted crop growth stage"),
   growthConfidence: zod
     .number()
     .optional()
     .describe("Confidence level of the growth stage prediction"),
+  allScores: zod
+    .array(zod.number())
+    .optional()
+    .describe("Probability distribution across all growth stages"),
 });
 
 /**
- * Returns current weather conditions and active alerts
  * @summary Get weather data and alerts
  */
 export const GetWeatherResponse = zod.object({
@@ -130,7 +136,6 @@ export const GetWeatherResponse = zod.object({
 });
 
 /**
- * Returns crop health summary, issues, and suggested actions
  * @summary Get crop recommendations
  */
 export const GetRecommendationResponse = zod.object({
@@ -150,13 +155,28 @@ export const GetRecommendationResponse = zod.object({
 });
 
 /**
+ * @summary Analyze crop growth stage from image
+ */
+export const AnalyzeGrowthStageBody = zod.object({
+  image: zod.instanceof(File),
+});
+
+export const AnalyzeGrowthStageResponse = zod.object({
+  stage: zod.string(),
+  confidence: zod.number(),
+  all_scores: zod.array(zod.number()).optional(),
+  recommendation: zod.string(),
+  status: zod.string(),
+});
+
+/**
  * @summary Get simulator configuration
  */
 export const GetSimulatorConfigResponse = zod.object({
   models: zod.object({
+    lstm: zod.boolean(),
     randomForest: zod.boolean(),
-    decisionTree: zod.boolean(),
-    timeSeries: zod.boolean(),
+    regression: zod.boolean(),
     ruleEngine: zod.boolean(),
     growthAI: zod.boolean(),
   }),
@@ -177,9 +197,9 @@ export const GetSimulatorConfigResponse = zod.object({
  */
 export const UpdateSimulatorConfigBody = zod.object({
   models: zod.object({
+    lstm: zod.boolean(),
     randomForest: zod.boolean(),
-    decisionTree: zod.boolean(),
-    timeSeries: zod.boolean(),
+    regression: zod.boolean(),
     ruleEngine: zod.boolean(),
     growthAI: zod.boolean(),
   }),
@@ -197,9 +217,9 @@ export const UpdateSimulatorConfigBody = zod.object({
 
 export const UpdateSimulatorConfigResponse = zod.object({
   models: zod.object({
+    lstm: zod.boolean(),
     randomForest: zod.boolean(),
-    decisionTree: zod.boolean(),
-    timeSeries: zod.boolean(),
+    regression: zod.boolean(),
     ruleEngine: zod.boolean(),
     growthAI: zod.boolean(),
   }),
@@ -228,16 +248,24 @@ export const GetLatestSimulatorDataResponse = zod.object({
   phosphorus: zod.number(),
   potassium: zod.number(),
   pH: zod.number(),
-  lstmOutput: zod.number().optional(),
-  rfOutput: zod.string().optional(),
   regressionOutput: zod.number().optional(),
   ruleEngineOutput: zod.string().optional(),
+  rfPrediction: zod.number().optional(),
+  dtInsights: zod.array(zod.string()).optional(),
+  tsForecastData: zod
+    .array(
+      zod.object({
+        time: zod.string().optional(),
+        value: zod.number().optional(),
+      }),
+    )
+    .optional(),
   fertilizerRecommendation: zod.string().optional(),
   fertilizerSource: zod.enum(["AI", "Fallback"]).optional(),
   growthStage: zod.string().optional(),
   growthConfidence: zod.number().optional(),
+  allScores: zod.array(zod.number()).optional(),
 });
-
 
 /**
  * @summary Generate bulk simulated data

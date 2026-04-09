@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { GetSimulatorConfigResponse, UpdateSimulatorConfigBody, GetLatestSimulatorDataResponse } from "@workspace/api-zod";
+import { GetSimulatorConfigResponse, UpdateSimulatorConfigBody, GetLatestSimulatorDataResponse, type Types } from "@workspace/api-zod";
 import { simulatorConfig, currentSimulatedData, updateConfig, calculateStep, runMLInference } from "../lib/shared-state";
 
 const router: IRouter = Router();

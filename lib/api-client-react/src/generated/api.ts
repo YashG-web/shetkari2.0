@@ -17,7 +17,9 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  AnalyzeGrowthStageBody,
   GenerateBulkDataBody,
+  GrowthStageResponse,
   HealthStatus,
   PredictForecast200,
   PredictForecastBody,
@@ -118,7 +120,6 @@ export function useHealthCheck<
 }
 
 /**
- * Returns a predicted soil moisture value using the LSTM model.
  * @summary Predict future soil moisture (LSTM)
  */
 export const getPredictMoistureUrl = () => {
@@ -400,7 +401,6 @@ export const usePredictForecast = <
 };
 
 /**
- * Returns simulated real-time sensor data
  * @summary Get latest IoT sensor readings
  */
 export const getGetSensorDataUrl = () => {
@@ -476,7 +476,6 @@ export function useGetSensorData<
 }
 
 /**
- * Returns current weather conditions and active alerts
  * @summary Get weather data and alerts
  */
 export const getGetWeatherUrl = () => {
@@ -552,7 +551,6 @@ export function useGetWeather<
 }
 
 /**
- * Returns crop health summary, issues, and suggested actions
  * @summary Get crop recommendations
  */
 export const getGetRecommendationUrl = () => {
@@ -626,6 +624,94 @@ export function useGetRecommendation<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary Analyze crop growth stage from image
+ */
+export const getAnalyzeGrowthStageUrl = () => {
+  return `/api/growth-stage`;
+};
+
+export const analyzeGrowthStage = async (
+  analyzeGrowthStageBody: AnalyzeGrowthStageBody,
+  options?: RequestInit,
+): Promise<GrowthStageResponse> => {
+  const formData = new FormData();
+  formData.append(`image`, analyzeGrowthStageBody.image);
+
+  return customFetch<GrowthStageResponse>(getAnalyzeGrowthStageUrl(), {
+    ...options,
+    method: "POST",
+    body: formData,
+  });
+};
+
+export const getAnalyzeGrowthStageMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof analyzeGrowthStage>>,
+    TError,
+    { data: BodyType<AnalyzeGrowthStageBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof analyzeGrowthStage>>,
+  TError,
+  { data: BodyType<AnalyzeGrowthStageBody> },
+  TContext
+> => {
+  const mutationKey = ["analyzeGrowthStage"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof analyzeGrowthStage>>,
+    { data: BodyType<AnalyzeGrowthStageBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return analyzeGrowthStage(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AnalyzeGrowthStageMutationResult = NonNullable<
+  Awaited<ReturnType<typeof analyzeGrowthStage>>
+>;
+export type AnalyzeGrowthStageMutationBody = BodyType<AnalyzeGrowthStageBody>;
+export type AnalyzeGrowthStageMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Analyze crop growth stage from image
+ */
+export const useAnalyzeGrowthStage = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof analyzeGrowthStage>>,
+    TError,
+    { data: BodyType<AnalyzeGrowthStageBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof analyzeGrowthStage>>,
+  TError,
+  { data: BodyType<AnalyzeGrowthStageBody> },
+  TContext
+> => {
+  return useMutation(getAnalyzeGrowthStageMutationOptions(options));
+};
 
 /**
  * @summary Get simulator configuration

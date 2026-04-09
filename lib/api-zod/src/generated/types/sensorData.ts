@@ -5,6 +5,7 @@
  * Smart Farming API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { SensorDataFertilizerSource } from "./sensorDataFertilizerSource";
 import type { SensorDataPumpStatus } from "./sensorDataPumpStatus";
 import type { SensorDataTsForecastDataItem } from "./sensorDataTsForecastDataItem";
 
@@ -31,5 +32,11 @@ export interface SensorData {
   /** Latest fertilizer recommendation from ML/fallback logic */
   fertilizerRecommendation?: string;
   /** Indicates whether fertilizer recommendation came from AI or fallback rules */
-  fertilizerSource?: "AI" | "Fallback";
+  fertilizerSource?: SensorDataFertilizerSource;
+  /** Predicted crop growth stage */
+  growthStage?: string;
+  /** Confidence level of the growth stage prediction */
+  growthConfidence?: number;
+  /** Probability distribution across all growth stages */
+  allScores?: number[];
 }

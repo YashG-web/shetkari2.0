@@ -7,6 +7,7 @@ import { useAppStore } from '@/store/use-app-store';
 import { useTTS } from '@/hooks/use-tts';
 import { UploadCloud, Camera, CheckCircle2, Volume2, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Badge } from '@/components/ui/badge';
 
 type AnalysisResult = {
   stage: string;

@@ -5,6 +5,8 @@
  * Smart Farming API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { SimulatorDataFertilizerSource } from "./simulatorDataFertilizerSource";
+import type { SimulatorDataTsForecastDataItem } from "./simulatorDataTsForecastDataItem";
 
 export interface SimulatorData {
   timestamp: string;
@@ -16,12 +18,14 @@ export interface SimulatorData {
   phosphorus: number;
   potassium: number;
   pH: number;
-  lstmOutput?: number;
-  rfOutput?: string;
   regressionOutput?: number;
   ruleEngineOutput?: string;
+  rfPrediction?: number;
+  dtInsights?: string[];
+  tsForecastData?: SimulatorDataTsForecastDataItem[];
+  fertilizerRecommendation?: string;
+  fertilizerSource?: SimulatorDataFertilizerSource;
   growthStage?: string;
   growthConfidence?: number;
-  fertilizerRecommendation?: string;
-  fertilizerSource?: 'AI' | 'Fallback';
+  allScores?: number[];
 }

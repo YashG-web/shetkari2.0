@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { GetRecommendationResponse, type FertilizerRecommendation } from "@workspace/api-zod";
+import { GetRecommendationResponse, type Types } from "@workspace/api-zod";
 import { currentSimulatedData, getRuleBasedFertilizerRecommendation } from "../lib/shared-state";
 import axios from "axios";
 
@@ -7,7 +7,7 @@ const router: IRouter = Router();
 
 const ML_SERVICE_URL = process.env.ML_SERVICE_URL || "http://localhost:8000";
 
-const FERTILIZER_CATALOG: Record<string, FertilizerRecommendation> = {
+const FERTILIZER_CATALOG: Record<string, Types.FertilizerRecommendation> = {
   "Liquid Humic Acid": {
     name: "Liquid Humic Acid",
     npkRatio: "0-0-0",
@@ -66,7 +66,7 @@ const FERTILIZER_CATALOG: Record<string, FertilizerRecommendation> = {
   },
 };
 
-function getFertilizerDetails(name: string): FertilizerRecommendation {
+function getFertilizerDetails(name: string): Types.FertilizerRecommendation {
   if (FERTILIZER_CATALOG[name]) {
     return FERTILIZER_CATALOG[name];
   }

@@ -193,8 +193,8 @@ export default function Simulator() {
               <CardContent className="pt-6 space-y-6">
                 {[
                   { id: 'randomForest', name: 'Random Forest', desc: 'Moisture Accuracy' },
-                  { id: 'decisionTree', name: 'Decision Tree', desc: 'Reasoning Insights' },
-                  { id: 'timeSeries', name: 'Time Series', desc: '7-Hour Forecasting' },
+                  { id: 'regression', name: 'Decision Tree', desc: 'Reasoning Insights' },
+                  { id: 'lstm', name: 'Time Series', desc: '7-Hour Forecasting' },
                   { id: 'ruleEngine', name: 'Rule Engine', desc: 'Automation Layer' },
                   { id: 'growthAI', name: 'Growth Stage AI', desc: 'Real-time Crop Analysis' },
                 ].map((model) => (

@@ -22,6 +22,17 @@ export type SensorDataTsForecastDataItem = {
   value?: number;
 };
 
+/**
+ * Indicates whether fertilizer recommendation came from AI or fallback rules
+ */
+export type SensorDataFertilizerSource =
+  (typeof SensorDataFertilizerSource)[keyof typeof SensorDataFertilizerSource];
+
+export const SensorDataFertilizerSource = {
+  AI: "AI",
+  Fallback: "Fallback",
+} as const;
+
 export interface SensorData {
   /** Soil moisture percentage (0-100) */
   soilMoisture: number;
@@ -45,7 +56,13 @@ export interface SensorData {
   /** Latest fertilizer recommendation from ML/fallback logic */
   fertilizerRecommendation?: string;
   /** Indicates whether fertilizer recommendation came from AI or fallback rules */
-  fertilizerSource?: "AI" | "Fallback";
+  fertilizerSource?: SensorDataFertilizerSource;
+  /** Predicted crop growth stage */
+  growthStage?: string;
+  /** Confidence level of the growth stage prediction */
+  growthConfidence?: number;
+  /** Probability distribution across all growth stages */
+  allScores?: number[];
 }
 
 export type WeatherAlertType =
@@ -120,6 +137,7 @@ export type SimulatorConfigModels = {
   randomForest: boolean;
   regression: boolean;
   ruleEngine: boolean;
+  growthAI: boolean;
 };
 
 export type SimulatorConfigControls = {
@@ -138,6 +156,19 @@ export interface SimulatorConfig {
   controls: SimulatorConfigControls;
 }
 
+export type SimulatorDataTsForecastDataItem = {
+  time?: string;
+  value?: number;
+};
+
+export type SimulatorDataFertilizerSource =
+  (typeof SimulatorDataFertilizerSource)[keyof typeof SimulatorDataFertilizerSource];
+
+export const SimulatorDataFertilizerSource = {
+  AI: "AI",
+  Fallback: "Fallback",
+} as const;
+
 export interface SimulatorData {
   timestamp: string;
   soilMoisture: number;
@@ -148,10 +179,24 @@ export interface SimulatorData {
   phosphorus: number;
   potassium: number;
   pH: number;
-  lstmOutput?: number;
-  rfOutput?: string;
   regressionOutput?: number;
   ruleEngineOutput?: string;
+  rfPrediction?: number;
+  dtInsights?: string[];
+  tsForecastData?: SimulatorDataTsForecastDataItem[];
+  fertilizerRecommendation?: string;
+  fertilizerSource?: SimulatorDataFertilizerSource;
+  growthStage?: string;
+  growthConfidence?: number;
+  allScores?: number[];
+}
+
+export interface GrowthStageResponse {
+  stage: string;
+  confidence: number;
+  all_scores?: number[];
+  recommendation: string;
+  status: string;
 }
 
 export type PredictMoisture200 = {
@@ -195,6 +240,10 @@ export type PredictForecastBody = {
 export type PredictForecast200 = {
   forecast: number;
   status: string;
+};
+
+export type AnalyzeGrowthStageBody = {
+  image: Blob;
 };
 
 export type GenerateBulkDataBodyDuration =

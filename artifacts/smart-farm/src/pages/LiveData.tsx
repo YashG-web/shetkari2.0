@@ -1,4 +1,4 @@
-import { useGetSensorData } from '@workspace/api-client-react';
+import { useGetSensorData, getGetSensorDataQueryKey } from '@workspace/api-client-react';
 import { useTranslation } from '@/lib/translations';
 import { useAppStore } from '@/store/use-app-store';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -13,7 +13,10 @@ export default function LiveData() {
   const tr = useTranslation();
   
   const { data: sensorData, isLoading, refetch, isRefetching } = useGetSensorData({
-    query: { refetchInterval: 3000 }
+    query: { 
+      queryKey: getGetSensorDataQueryKey(),
+      refetchInterval: 3000 
+    }
   });
 
   return (
