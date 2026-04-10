@@ -16,7 +16,6 @@ type AnalysisResult = {
 } | null;
 
 export default function CropAnalysis() {
-  const { language } = useAppStore();
   const tr = useTranslation();
   const { toast } = useToast();
   const { speak, isPlaying } = useTTS();
@@ -50,8 +49,8 @@ export default function CropAnalysis() {
         recommendation: data.recommendation,
       });
       toast({
-        title: 'Analysis Complete',
-        description: `Crop is in ${data.stage} stage.`,
+        title: tr('analysis.complete_title'),
+        description: `${tr('analysis.status_prefix')} ${tr(data.stage)} ${tr('analysis.status_suffix')}`,
       });
     },
     onError: (error: Error) => {
@@ -80,7 +79,8 @@ export default function CropAnalysis() {
 
   const handleSpeak = () => {
     if (!result) return;
-    speak(`Analysis complete. The crop is in the ${result.stage} stage with ${result.confidence} percent confidence. The recommendation is: ${result.recommendation}`);
+    const voiceText = `${tr('analysis.complete_title')}. ${tr('analysis.status_prefix')} ${tr(result.stage)} ${tr('analysis.status_suffix')}. ${tr('analysis.confidence_prefix')} ${result.confidence} ${tr('analysis.confidence_suffix')}. ${tr('analysis.recommendation_prefix')}: ${tr(result.recommendation)}`;
+    speak(voiceText);
   };
 
   return (
@@ -88,9 +88,9 @@ export default function CropAnalysis() {
       <div className="max-w-4xl mx-auto space-y-8">
         <div>
           <h1 className="text-3xl font-display font-bold text-foreground">
-            {tr('nav.crop_analysis', language)}
+            {tr('nav.crop_analysis')}
           </h1>
-          <p className="text-muted-foreground mt-2">Upload a photo of your crop to instantly identify its current growth stage and get optimization tips.</p>
+          <p className="text-muted-foreground mt-2">{tr('analysis.subtitle')}</p>
         </div>
 
         <div className="grid md:grid-cols-2 gap-8">
@@ -114,7 +114,7 @@ export default function CropAnalysis() {
                       onClick={() => fileInputRef.current?.click()}
                       className="bg-white/20 backdrop-blur-md text-white px-6 py-3 rounded-xl font-bold hover:bg-white/30"
                     >
-                      Change Photo
+                      {tr('action.change_photo')}
                     </button>
                   </div>
                 </div>
@@ -123,15 +123,15 @@ export default function CropAnalysis() {
                   <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-6">
                     <UploadCloud className="w-10 h-10 text-primary" />
                   </div>
-                  <h3 className="text-xl font-bold mb-2">Upload Crop Image</h3>
-                  <p className="text-muted-foreground mb-8 text-sm px-8">Drag and drop or click to upload a clear photo of your plant's development area.</p>
+                  <h3 className="text-xl font-bold mb-2">{tr('analysis.upload_title')}</h3>
+                  <p className="text-muted-foreground mb-8 text-sm px-8">{tr('analysis.upload_desc')}</p>
                   
                   <div className="flex gap-4">
                     <button 
                       onClick={() => fileInputRef.current?.click()}
                       className="bg-foreground text-background px-6 py-3 rounded-xl font-semibold hover:bg-primary transition-colors"
                     >
-                      Browse Files
+                      {tr('action.browse_files')}
                     </button>
                     <button 
                       onClick={() => {
@@ -143,7 +143,7 @@ export default function CropAnalysis() {
                       className="bg-muted text-foreground px-6 py-3 rounded-xl font-semibold flex items-center gap-2 hover:bg-accent hover:text-primary transition-colors"
                     >
                       <Camera className="w-5 h-5" />
-                      Take Photo
+                      {tr('action.take_photo')}
                     </button>
                   </div>
                 </>
@@ -161,7 +161,7 @@ export default function CropAnalysis() {
                   className="flex-1 flex flex-col items-center justify-center text-center text-muted-foreground"
                 >
                   <Camera className="w-16 h-16 opacity-20 mb-4" />
-                  <p>Upload an image to see AI analysis results here.</p>
+                  <p>{tr('analysis.empty_state')}</p>
                 </motion.div>
               )}
 
@@ -172,8 +172,8 @@ export default function CropAnalysis() {
                   className="flex-1 flex flex-col items-center justify-center text-center"
                 >
                   <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
-                  <h3 className="text-xl font-bold text-foreground">Analyzing Image...</h3>
-                  <p className="text-muted-foreground mt-2">Our AI is analyzing crop development patterns and flowering stages.</p>
+                  <h3 className="text-xl font-bold text-foreground">{tr('analysis.analyzing_title')}</h3>
+                  <p className="text-muted-foreground mt-2">{tr('analysis.analyzing_desc')}</p>
                 </motion.div>
               )}
 
@@ -184,7 +184,7 @@ export default function CropAnalysis() {
                   className="flex-1"
                 >
                   <div className="flex justify-between items-start mb-6">
-                    <h3 className="text-2xl font-bold text-foreground">Analysis Complete</h3>
+                    <h3 className="text-2xl font-bold text-foreground">{tr('analysis.complete_title')}</h3>
                     <button
                       onClick={handleSpeak}
                       className={`p-3 rounded-full transition-all ${
@@ -197,34 +197,21 @@ export default function CropAnalysis() {
 
                   <div className="space-y-6">
                     <div className="bg-primary/5 border border-primary/10 rounded-2xl p-5">
-                      <p className="text-primary/60 font-semibold text-xs uppercase tracking-wider mb-1">🌼 Growth Stage</p>
-                      <p className="text-foreground font-bold text-lg">{result.stage}</p>
+                      <p className="text-primary/60 font-semibold text-xs uppercase tracking-wider mb-1">{tr('analysis.growth_stage_label')}</p>
+                      <div className="flex flex-wrap items-center gap-3">
+                        <Badge variant="outline" className="text-lg py-1 px-4 border-primary/20 bg-primary/5 text-primary">
+                          {tr(result.stage)}
+                        </Badge>
+                        <span className="text-sm font-medium text-muted-foreground bg-muted/50 px-3 py-1 rounded-full uppercase tracking-widest">
+                          {result.confidence}% {tr('analysis.confidence_label')}
+                        </span>
+                      </div>
                     </div>
                     
-                    <div className="bg-slate-50 border border-slate-100 rounded-2xl p-5 relative overflow-hidden">
-                      <p className="text-slate-500 font-semibold text-xs uppercase tracking-wider mb-1">📊 Confidence</p>
-                      <div className="flex items-center gap-2">
-                        <p className="text-slate-900 font-bold text-lg">{result.confidence}%</p>
-                        {result.confidence < 40 && (
-                          <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-600 border-amber-200">
-                            Low Confidence
-                          </Badge>
-                        )}
-                      </div>
-                      {result.confidence < 40 && (
-                        <p className="text-[10px] text-amber-500 mt-2 italic leading-tight">
-                          * Prediction is uncertain. Ensure the photo is clear and well-lit.
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="bg-muted/30 rounded-2xl p-5">
-                      <p className="text-foreground font-bold mb-3 flex items-center gap-2">
-                        <CheckCircle2 className="w-5 h-5 text-primary" />
-                        AI Recommendation
-                      </p>
-                      <p className="text-muted-foreground text-sm leading-relaxed">
-                        {result.recommendation}
+                    <div className="bg-slate-50 dark:bg-slate-900/50 rounded-2xl p-6 border border-slate-200 dark:border-slate-800">
+                      <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-2">{tr('analysis.ai_recommendation')}</h3>
+                      <p className="text-lg text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
+                        {tr(result.recommendation)}
                       </p>
                     </div>
                   </div>

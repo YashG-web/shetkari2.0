@@ -11,7 +11,6 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 
 export default function LiveData() {
-  const { language } = useAppStore();
   const tr = useTranslation();
   
   const { isSimulatorOn } = useAppStore();
@@ -122,7 +121,7 @@ export default function LiveData() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card p-6 rounded-3xl border border-border/50 shadow-sm">
           <div>
             <h1 className="text-3xl font-display font-bold text-foreground">
-              {tr('nav.live_data', language)}
+              {tr('nav.live_data')}
             </h1>
             <div className="flex items-center gap-3 mt-2 text-muted-foreground text-sm font-medium">
               <span className="flex items-center gap-2">
@@ -130,11 +129,11 @@ export default function LiveData() {
                   <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isOffline ? 'bg-red-500' : 'bg-primary'}`}></span>
                   <span className={`relative inline-flex rounded-full h-3 w-3 ${isOffline ? 'bg-red-500' : 'bg-primary'}`}></span>
                 </span>
-                {isOffline ? "ESP32 Offline" : (isSimulatorOn ? "Simulator Active" : "IoT Sensor Online")}
+                {isOffline ? tr('sensor.esp32_offline') : (isSimulatorOn ? tr('sensor.simulator_active') : tr('sensor.iot_online'))}
               </span>
               <span>•</span>
               <span>
-                {tr('sensor.last_updated', language)}: {sensorData?.timestamp || sensorData?.connectedAt ? format(new Date(sensorData.timestamp || sensorData.connectedAt), 'HH:mm:ss') : '-'}
+                {tr('sensor.last_updated')}: {sensorData?.timestamp || sensorData?.connectedAt ? format(new Date(sensorData.timestamp || sensorData.connectedAt), 'HH:mm:ss') : '-'}
               </span>
             </div>
           </div>
@@ -142,7 +141,7 @@ export default function LiveData() {
           <div className="flex items-center gap-4">
             <div className={`p-2 rounded-lg ${isOffline ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600'} hidden md:flex items-center gap-2 text-xs font-bold ring-1 ring-inset`}>
               {isOffline ? <WifiOff className="w-4 h-4" /> : <Wifi className="w-4 h-4" />}
-              {isOffline ? 'DISCONNECTED' : 'STABLE SIGNAL'}
+              {isOffline ? tr('status.disconnected') : tr('status.stable')}
             </div>
             <button 
               onClick={() => isSimulatorOn ? refetch() : null}
@@ -155,7 +154,7 @@ export default function LiveData() {
               href="/recommendation"
               className="px-6 py-3 rounded-xl bg-primary text-primary-foreground font-semibold hover:shadow-lg hover:shadow-primary/25 hover:-translate-y-0.5 transition-all"
             >
-              {tr('action.analyze', language)}
+              {tr('action.analyze')}
             </Link>
           </div>
         </div>
@@ -167,25 +166,25 @@ export default function LiveData() {
           <div className="space-y-4">
             <h2 className="text-xl font-display font-bold text-foreground flex items-center gap-2">
               <ThermometerSun className="text-orange-500 w-6 h-6" />
-              Environment Metrics
+              {tr('section.environment')}
             </h2>
             <div className="grid sm:grid-cols-2 gap-4">
               <MetricCard
-                title={tr('sensor.soil_moisture', language)}
+                title={tr('sensor.soil_moisture')}
                 value={isLoading ? '-' : sensorData?.soilMoisture ?? '-'}
                 unit="%"
                 icon={Droplets}
                 colorClass="text-blue-500"
               />
               <MetricCard
-                title={tr('sensor.temperature', language)}
+                title={tr('sensor.temperature')}
                 value={isLoading ? '-' : sensorData?.temperature ?? '-'}
                 unit="°C"
                 icon={ThermometerSun}
                 colorClass="text-orange-500"
               />
               <MetricCard
-                title={tr('sensor.humidity', language)}
+                title={tr('sensor.humidity')}
                 value={isLoading ? '-' : sensorData?.humidity ?? '-'}
                 unit="%"
                 icon={Wind}
@@ -198,25 +197,25 @@ export default function LiveData() {
           <div className="space-y-4">
             <h2 className="text-xl font-display font-bold text-foreground flex items-center gap-2">
               <Activity className="text-primary w-6 h-6" />
-              Soil Nutrients (NPK)
+              {tr('section.nutrients')}
             </h2>
             <div className="grid sm:grid-cols-2 gap-4">
               <MetricCard
-                title="Nitrogen (N)"
+                title={tr('sensor.nitrogen')}
                 value={isLoading ? '-' : sensorData?.nitrogen ?? '-'}
                 unit="ppm"
                 icon={BarChart2}
                 colorClass="text-purple-500"
               />
               <MetricCard
-                title="Phosphorus (P)"
+                title={tr('sensor.phosphorus')}
                 value={isLoading ? '-' : sensorData?.phosphorus ?? '-'}
                 unit="ppm"
                 icon={BarChart2}
                 colorClass="text-pink-500"
               />
               <MetricCard
-                title="Potassium (K)"
+                title={tr('sensor.potassium')}
                 value={isLoading ? '-' : sensorData?.potassium ?? '-'}
                 unit="ppm"
                 icon={BarChart2}

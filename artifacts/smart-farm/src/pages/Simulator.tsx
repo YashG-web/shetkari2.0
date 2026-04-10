@@ -22,9 +22,11 @@ import {
   BrainCircuit, Factory, Scale, Info
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from '@/lib/translations';
 import { toast } from "sonner";
 
 export default function Simulator() {
+  const tr = useTranslation();
   const queryClient = useQueryClient();
   const [isSimulating, setIsSimulating] = useState(false);
   const [bulkDuration, setBulkDuration] = useState<"1-month" | "3-months" | "6-months" | "1-year">("1-month");
@@ -139,10 +141,10 @@ export default function Simulator() {
           <div>
             <h1 className="text-4xl font-display font-bold text-foreground flex items-center gap-3">
               <Factory className="w-10 h-10 text-primary" />
-              Smart Farm Simulator
+              {tr('sim.title')}
             </h1>
             <p className="text-muted-foreground text-lg font-medium mt-1">
-              Test ML models and generate synthetic datasets in a controlled environment.
+              {tr('sim.subtitle')}
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -152,7 +154,7 @@ export default function Simulator() {
                 onClick={() => { setDraftConfig(localConfig); setIsDirty(false); }}
                 className="rounded-xl border-dashed"
               >
-                Reset
+                {tr('sim.reset')}
               </Button>
             )}
             <Button 
@@ -164,12 +166,12 @@ export default function Simulator() {
               {isSimulating ? (
                 <>
                   <Square className="w-5 h-5 mr-2 fill-current" />
-                  Stop Simulation
+                  {tr('sim.stop')}
                 </>
               ) : (
                 <>
                   <Play className="w-5 h-5 mr-2 fill-current" />
-                  Start Simulation
+                  {tr('sim.start')}
                 </>
               )}
             </Button>
@@ -186,9 +188,9 @@ export default function Simulator() {
               <CardHeader className="bg-primary/5">
                 <CardTitle className="flex items-center gap-2 text-xl">
                   <BrainCircuit className="w-6 h-6 text-primary" />
-                  ML Models
+                  {tr('sim.ml_models')}
                 </CardTitle>
-                <CardDescription>Enable models to generate predictions</CardDescription>
+                <CardDescription>{tr('sim.ml_models_desc')}</CardDescription>
               </CardHeader>
               <CardContent className="pt-6 space-y-6">
                 {[
@@ -219,7 +221,7 @@ export default function Simulator() {
                 <div className="flex justify-between items-center">
                   <CardTitle className="flex items-center gap-2 text-xl text-primary">
                     <Settings2 className="w-6 h-6" />
-                    Env Controls
+                    {tr('sim.env_controls')}
                   </CardTitle>
                   <Button 
                     size="sm" 
@@ -227,7 +229,7 @@ export default function Simulator() {
                     onClick={applyChanges}
                     className="h-8 rounded-lg font-bold"
                   >
-                    Apply Changes
+                    {tr('sim.apply')}
                   </Button>
                 </div>
               </CardHeader>
@@ -236,10 +238,10 @@ export default function Simulator() {
                   <div className="flex justify-between items-center">
                     <span className="text-sm font-bold flex items-center gap-2">
                        <CloudRain className="w-4 h-4 text-blue-500" />
-                       Rain Condition
+                       {tr('sim.rain_condition')}
                     </span>
                     <Badge variant={draftConfig.controls.rain ? "default" : "secondary"} className="rounded-md">
-                      {draftConfig.controls.rain ? "RAINING" : "NO RAIN"}
+                      {draftConfig.controls.rain ? tr('status.raining') : tr('status.no_rain')}
                     </Badge>
                   </div>
                   <Switch 
@@ -252,7 +254,7 @@ export default function Simulator() {
                   <div className="flex justify-between">
                     <span className="text-sm font-bold flex items-center gap-2">
                       <Thermometer className="w-4 h-4 text-orange-500" />
-                      Temperature ({draftConfig.controls.temperature}°C)
+                      {tr('sensor.temperature')} ({draftConfig.controls.temperature}°C)
                     </span>
                   </div>
                   <Slider 
@@ -266,7 +268,7 @@ export default function Simulator() {
                   <div className="flex justify-between">
                     <span className="text-sm font-bold flex items-center gap-2">
                       <Wind className="w-4 h-4 text-teal-500" />
-                      Humidity ({draftConfig.controls.humidity}%)
+                      {tr('sensor.humidity')} ({draftConfig.controls.humidity}%)
                     </span>
                   </div>
                   <Slider 
@@ -280,7 +282,7 @@ export default function Simulator() {
                   <div className="flex justify-between">
                     <span className="text-sm font-bold flex items-center gap-2">
                       <Droplets className="w-4 h-4 text-blue-400" />
-                      Soil Moisture ({draftConfig.controls.soilMoisture}%)
+                      {tr('sensor.soil_moisture')} ({draftConfig.controls.soilMoisture}%)
                     </span>
                   </div>
                   <Slider 
@@ -293,13 +295,13 @@ export default function Simulator() {
                 <div className="space-y-6 pt-2 border-t border-border/10">
                    <div className="flex items-center gap-2">
                       <Beaker className="w-4 h-4 text-purple-500" /> 
-                      <span className="text-sm font-bold">Soil Nutrients (N-P-K)</span>
+                      <span className="text-sm font-bold">{tr('section.nutrients')}</span>
                    </div>
                    
                    <div className="space-y-4">
                       <div className="space-y-2">
                         <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider">
-                          <label>Nitrogen (N)</label>
+                          <label>{tr('sensor.nitrogen')}</label>
                           <span className="text-primary">{draftConfig.controls.nitrogen} mg/kg</span>
                         </div>
                         <Slider 
@@ -311,7 +313,7 @@ export default function Simulator() {
 
                       <div className="space-y-2">
                         <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider">
-                          <label>Phosphorus (P)</label>
+                          <label>{tr('sensor.phosphorus')}</label>
                           <span className="text-primary">{draftConfig.controls.phosphorus} mg/kg</span>
                         </div>
                         <Slider 
@@ -323,7 +325,7 @@ export default function Simulator() {
 
                       <div className="space-y-2">
                         <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider">
-                          <label>Potassium (K)</label>
+                          <label>{tr('sensor.potassium')}</label>
                           <span className="text-primary">{draftConfig.controls.potassium} mg/kg</span>
                         </div>
                         <Slider 
@@ -336,7 +338,7 @@ export default function Simulator() {
 
                    <div className="space-y-2 pt-2">
                       <span className="text-xs font-bold flex items-center gap-1">
-                        <FlaskConical className="w-3 h-3 text-emerald-500" /> Soil pH ({draftConfig.controls.pH})
+                        <FlaskConical className="w-3 h-3 text-emerald-500" /> {tr('sensor.ph')} ({draftConfig.controls.pH})
                       </span>
                       <Slider 
                          value={[draftConfig.controls.pH]}
@@ -359,13 +361,13 @@ export default function Simulator() {
                </div>
                <CardContent className="pt-8 pb-8 flex flex-col md:flex-row items-center gap-8 relative z-10">
                   <div className="flex-1 text-center md:text-left space-y-2">
-                    <h3 className="text-2xl font-bold font-display">Dataset Factory</h3>
-                    <p className="text-muted-foreground font-medium">Generate years of high-quality synthetic data for your ML training pipelines instantly.</p>
+                    <h3 className="text-2xl font-bold font-display">{tr('sim.dataset_factory')}</h3>
+                    <p className="text-muted-foreground font-medium">{tr('sim.dataset_desc')}</p>
                   </div>
                   <div className="flex flex-col sm:flex-row items-center gap-4 min-w-[320px]">
                     <Select value={bulkDuration} onValueChange={(v: any) => setBulkDuration(v)}>
                       <SelectTrigger className="w-full sm:w-[140px] rounded-xl font-bold h-12 bg-white">
-                        <SelectValue placeholder="Duration" />
+                        <SelectValue placeholder={tr('sim.duration')} />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="1-month">1 Month</SelectItem>
@@ -379,7 +381,7 @@ export default function Simulator() {
                       className="w-full sm:w-auto rounded-xl px-10 h-12 font-bold bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-200"
                     >
                       <Download className="w-5 h-5 mr-2" />
-                      Generate CSV
+                      {tr('sim.generate_csv')}
                     </Button>
                   </div>
                </CardContent>
@@ -391,13 +393,13 @@ export default function Simulator() {
                   <div>
                     <CardTitle className="flex items-center gap-2">
                        <Activity className="w-6 h-6 text-primary animate-pulse" />
-                       Live Stream Data
+                       {tr('sim.live_stream')}
                     </CardTitle>
-                    <CardDescription>Real-time simulation updates every 3 seconds</CardDescription>
+                    <CardDescription>{tr('sim.live_stream_desc')}</CardDescription>
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge variant={isSimulating ? "default" : "outline"} className="px-3 py-1 rounded-full font-bold">
-                      {isSimulating ? "STREAM ACTIVE" : "STREAM PAUSED"}
+                      {isSimulating ? tr('sim.stream_active') : tr('sim.stream_paused')}
                     </Badge>
                   </div>
                </CardHeader>
@@ -406,12 +408,12 @@ export default function Simulator() {
                     <Table>
                       <TableHeader className="bg-muted/30">
                         <TableRow>
-                          <TableHead className="font-bold">Timestamp</TableHead>
-                          <TableHead className="font-bold">Soil (%)</TableHead>
-                          <TableHead className="font-bold">Temp (°C)</TableHead>
-                          <TableHead className="font-bold">Rain</TableHead>
-                          <TableHead className="font-bold">Growth</TableHead>
-                          <TableHead className="font-bold">AI Analytics</TableHead>
+                          <TableHead className="font-bold">{tr('table.timestamp')}</TableHead>
+                          <TableHead className="font-bold">{tr('table.soil')}</TableHead>
+                          <TableHead className="font-bold">{tr('table.temp')}</TableHead>
+                          <TableHead className="font-bold">{tr('table.rain')}</TableHead>
+                          <TableHead className="font-bold">{tr('table.growth')}</TableHead>
+                          <TableHead className="font-bold">{tr('table.ai_analytics')}</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -437,9 +439,9 @@ export default function Simulator() {
                               <TableCell className="font-medium">{row.temperature}°</TableCell>
                               <TableCell>
                                 {row.rain ? (
-                                  <Badge className="bg-blue-100 text-blue-700 border-none">Yes</Badge>
+                                  <Badge className="bg-blue-100 text-blue-700 border-none">{tr('table.yes')}</Badge>
                                 ) : (
-                                  <Badge variant="outline" className="opacity-50">No</Badge>
+                                  <Badge variant="outline" className="opacity-50">{tr('table.no')}</Badge>
                                 )}
                               </TableCell>
                               <TableCell>
@@ -454,7 +456,7 @@ export default function Simulator() {
                                 <div className="flex flex-wrap gap-2">
                                   {localConfig.models.decisionTree && (
                                     <Badge variant="secondary" className="bg-indigo-100 text-indigo-700 border-none font-bold text-[10px]">
-                                      DT (Reasoner): Active
+                                      DT ({tr('table.active')}): {tr('table.active')}
                                     </Badge>
                                   )}
                                   {localConfig.models.randomForest && row.rfPrediction && (
@@ -477,7 +479,7 @@ export default function Simulator() {
                             <TableCell colSpan={5} className="h-64 text-center">
                                <div className="flex flex-col items-center gap-4 text-muted-foreground">
                                   <Database className="w-12 h-12 opacity-20" />
-                                  <p className="font-medium">No live data yet. Click "Start Simulation" to begin.</p>
+                                  <p className="font-medium">{tr('sim.no_data')}</p>
                                 </div>
                             </TableCell>
                           </TableRow>
@@ -499,7 +501,7 @@ export default function Simulator() {
                        latestData?.fertilizerSource === "AI" ? "text-emerald-600 dark:text-emerald-400" : "text-orange-600 dark:text-orange-400"
                      }`}>
                        <FlaskConical className="w-5 h-5" />
-                       AI Fertilizer Forecast
+                       {tr('section.fertilizer_forecast')}
                      </CardTitle>
                    </CardHeader>
                    <CardContent>
@@ -507,7 +509,7 @@ export default function Simulator() {
                        <div className="relative group">
                          <p className="text-sm font-bold text-foreground bg-white/50 dark:bg-black/40 p-3 rounded-xl border border-border/50 min-h-[60px] flex flex-col items-center justify-center text-center shadow-inner">
                            <span className="text-xs text-muted-foreground uppercase tracking-tight mb-1">Recommended Plan</span>
-                           {latestData?.fertilizerRecommendation || "Awaiting AI Analysis..."}
+                           {latestData?.fertilizerRecommendation || tr('status.awaiting_ai')}
                          </p>
                        </div>
                        
@@ -515,18 +517,18 @@ export default function Simulator() {
                           <Badge variant="outline" className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0 ${
                             latestData?.fertilizerSource === "AI" ? "border-emerald-200 text-emerald-700" : "border-orange-200 text-orange-700"
                           }`}>
-                            Source: {latestData?.fertilizerSource || "Calculating"}
+                            {tr('status.source')}: {latestData?.fertilizerSource || "Calculating"}
                           </Badge>
                           
                           {latestData?.fertilizerSource === "AI" ? (
                             <div className="flex items-center gap-1 text-[9px] font-bold text-emerald-600 animate-pulse">
                               <Zap className="w-3 h-3 fill-current" />
-                              OPTIMIZED
+                              {tr('status.optimized')}
                             </div>
                           ) : (
                             <div className="flex items-center gap-1 text-[9px] font-bold text-orange-600">
                               <Info className="w-3 h-3" />
-                              STABLE
+                              {tr('status.stable_tag')}
                             </div>
                           )}
                        </div>
@@ -538,12 +540,12 @@ export default function Simulator() {
                    <CardHeader>
                      <CardTitle className="text-lg flex items-center gap-2">
                        <Scale className="w-5 h-5 text-primary" />
-                       Rule Engine Logic
+                       {tr('section.rule_engine')}
                      </CardTitle>
                    </CardHeader>
                    <CardContent>
                      <p className="text-sm font-medium text-muted-foreground bg-muted/30 p-4 rounded-xl border italic">
-                       "{latestData?.ruleEngineOutput || "Awaiting simulation..."}"
+                       "{latestData?.ruleEngineOutput || tr('status.awaiting_ai')}"
                      </p>
                    </CardContent>
                 </Card>
@@ -551,17 +553,17 @@ export default function Simulator() {
                     <CardHeader>
                       <CardTitle className="text-lg flex items-center gap-2 text-emerald-600">
                         <Activity className="w-5 h-5" />
-                        Growth Stage Analysis
+                        {tr('section.growth_analysis')}
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="flex justify-between items-end">
                         <div className="space-y-1">
-                          <span className="text-xs font-bold text-muted-foreground uppercase">Current Stage</span>
+                          <span className="text-xs font-bold text-muted-foreground uppercase">{tr('analysis.current_stage')}</span>
                           <div className="text-2xl font-black text-foreground">{latestData?.growthStage || "Initial"}</div>
                         </div>
                         <div className="text-right">
-                          <span className="text-xs font-bold text-muted-foreground uppercase">Confidence</span>
+                          <span className="text-xs font-bold text-muted-foreground uppercase">{tr('analysis.confidence_label')}</span>
                           <div className="text-lg font-bold text-emerald-500">{latestData?.growthConfidence || 0}%</div>
                         </div>
                       </div>
@@ -586,11 +588,11 @@ export default function Simulator() {
                     <CardHeader>
                      <CardTitle className="text-lg flex items-center gap-2">
                        <Info className="w-5 h-5 text-primary" />
-                       Simulator Hint
+                       {tr('sim.hint_title')}
                      </CardTitle>
                    </CardHeader>
                    <CardContent className="text-sm text-muted-foreground">
-                     Try turning on **Rain** and watch the **Soil Moisture** increase over time. High **Temperature** will accelerate evaporation.
+                     {tr('sim.hint_desc')}
                    </CardContent>
                 </Card>
              </div>

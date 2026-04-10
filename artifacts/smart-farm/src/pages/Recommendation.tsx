@@ -10,7 +10,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 
 export default function Recommendation() {
-  const { language, isSimulatorOn } = useAppStore();
+  const { isSimulatorOn } = useAppStore();
   const tr = useTranslation();
   const { speak, isPlaying } = useTTS();
   
@@ -20,6 +20,19 @@ export default function Recommendation() {
       refetchInterval: 3000
     }
   });
+
+  const translateDynamic = (text: string) => {
+    if (!text) return text;
+    // Check for ML Forecast suffix
+    if (text.includes(" (ML Forecast: ")) {
+      const parts = text.split(" (ML Forecast: ");
+      const base = tr(parts[0].trim());
+      const suffixRaw = parts[1]; // e.g. "45% moisture in next step)"
+      const percent = suffixRaw.split("%")[0];
+      return `${base} (${tr("ML Forecast")}: ${percent}% ${tr("moisture in next step")})`;
+    }
+    return tr(text);
+  };
 
   // Ensure hardware is synced even from the Recommendation page
   useEffect(() => {
@@ -55,7 +68,7 @@ export default function Recommendation() {
 
   const handleSpeak = () => {
     if (!rec) return;
-    const text = `Crop Condition is ${rec.cropCondition}. The main issue identified is ${rec.identifiedIssue}. Here are the suggested actions: ${rec.suggestedActions.join(', ')}. Recommended fertilizer is ${rec.fertilizerRecommendation.name} with NPK ratio ${rec.fertilizerRecommendation.npkRatio}.`;
+    const text = `${tr('audio.recommendation_intro')} ${tr('audio.crop_condition')} ${translateDynamic(rec.cropCondition)}. ${tr('audio.main_issue')} ${tr(rec.identifiedIssue)}. ${tr('audio.suggested_actions')}: ${rec.suggestedActions.map(a => tr(a)).join(', ')}. ${tr('audio.recommended_fertilizer')} ${tr(rec.fertilizerRecommendation.name)} ${tr('audio.npk_ratio')} ${rec.fertilizerRecommendation.npkRatio}.`;
     speak(text);
   };
 
@@ -90,7 +103,7 @@ export default function Recommendation() {
         {/* Header Actions */}
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-display font-bold text-foreground">
-            {tr('nav.recommendation', language)}
+            {tr('nav.recommendation')}
           </h1>
           <button
             onClick={handleSpeak}
@@ -99,7 +112,7 @@ export default function Recommendation() {
             }`}
           >
             <Volume2 className="w-5 h-5" />
-            {tr('action.listen', language)}
+            {tr('action.listen')}
           </button>
         </div>
 
@@ -113,16 +126,16 @@ export default function Recommendation() {
             <div className="flex-1 space-y-4">
               <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-bold border ${riskStyles[rec.riskLevel]}`}>
                 <RiskIcon className="w-4 h-4" />
-                Risk Level: {rec.riskLevel.toUpperCase()}
+                {tr('rec.risk_level')}: {tr(`rec.${rec.riskLevel}`)}
               </div>
               
               <h2 className="text-2xl font-bold text-foreground">
-                {rec.cropCondition}
+                {translateDynamic(rec.cropCondition)}
               </h2>
               
               <div className="bg-red-50 text-red-900 p-4 rounded-2xl border border-red-100">
-                <p className="font-semibold text-sm uppercase tracking-wider mb-1 opacity-70">Identified Issue</p>
-                <p className="text-lg">{rec.identifiedIssue}</p>
+                <p className="font-semibold text-sm uppercase tracking-wider mb-1 opacity-70">{tr('rec.identified_issue')}</p>
+                <p className="text-lg">{tr(rec.identifiedIssue)}</p>
               </div>
             </div>
             
@@ -130,16 +143,20 @@ export default function Recommendation() {
             <div className="flex-1 w-full bg-slate-50 rounded-2xl p-6 border border-slate-100">
               <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
                 <CheckCircle2 className="text-primary w-5 h-5" />
-                Suggested Actions
+                {tr('rec.suggested_actions')}
               </h3>
               <ul className="space-y-3">
                 {rec.suggestedActions.map((action, idx) => (
-                  <li key={idx} className="flex items-start gap-3 text-slate-700">
-                    <span className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
-                      {idx + 1}
-                    </span>
-                    <span className="font-medium leading-relaxed">{action}</span>
-                  </li>
+                  <motion.li 
+                    key={idx}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.1 * idx }}
+                    className="flex items-start gap-3 p-3 rounded-xl bg-white border border-slate-200/50 shadow-sm"
+                  >
+                    <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2 shrink-0" />
+                    <span className="text-slate-700 font-medium">{tr(action)}</span>
+                  </motion.li>
                 ))}
               </ul>
             </div>
@@ -152,20 +169,20 @@ export default function Recommendation() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
-          <h3 className="text-xl font-display font-bold mb-4">Recommended Product</h3>
+          <h3 className="text-xl font-display font-bold mb-4">{tr('rec.recommended_product')}</h3>
           <div className="bg-gradient-to-br from-primary/10 to-transparent border border-primary/20 rounded-3xl p-6 flex flex-col sm:flex-row items-center gap-6">
             <div className="w-24 h-24 bg-white rounded-2xl shadow-sm flex items-center justify-center shrink-0">
                <SquareSquare className="w-10 h-10 text-primary/40" />
             </div>
             
-            <div className="flex-1 text-center sm:text-left">
-              <h4 className="text-2xl font-bold text-foreground">{rec.fertilizerRecommendation.name}</h4>
-              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 mt-2 mb-3">
-                <span className="bg-white border border-border px-3 py-1 rounded-full text-sm font-semibold text-muted-foreground">
-                  NPK: {rec.fertilizerRecommendation.npkRatio}
-                </span>
+            <div className="flex-1 space-y-2">
+              <h4 className="text-xl font-bold text-foreground">{tr(rec.fertilizerRecommendation.name)}</h4>
+              <div className="inline-block px-3 py-1 bg-primary/10 text-primary text-xs font-bold rounded-lg mb-2">
+                NPK: {rec.fertilizerRecommendation.npkRatio}
               </div>
-              <p className="text-muted-foreground text-sm max-w-lg">{rec.fertilizerRecommendation.usageInfo}</p>
+              <p className="text-sm text-muted-foreground font-medium leading-relaxed">
+                {tr(rec.fertilizerRecommendation.usageInfo)}
+              </p>
             </div>
             
             <a 
@@ -175,7 +192,7 @@ export default function Recommendation() {
               className="shrink-0 flex items-center gap-2 px-8 py-4 bg-primary text-white rounded-xl font-bold hover:shadow-xl hover:shadow-primary/30 hover:-translate-y-1 transition-all"
             >
               <ShoppingCart className="w-5 h-5" />
-              Buy on {rec.fertilizerRecommendation.platform}
+              {tr('rec.buy_on')} {rec.fertilizerRecommendation.platform}
             </a>
           </div>
         </motion.div>

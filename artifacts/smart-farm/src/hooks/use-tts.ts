@@ -27,8 +27,16 @@ export function useTTS() {
     window.speechSynthesis.cancel();
 
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = langMap[language] || 'en-US';
-    utterance.rate = 0.9; // Slightly slower for better comprehension
+    const targetLang = langMap[language] || 'en-US';
+    utterance.lang = targetLang;
+    utterance.rate = 0.9;
+    
+    // Try to find a matching voice for better clarity
+    const voices = window.speechSynthesis.getVoices();
+    const voice = voices.find(v => v.lang.startsWith(language));
+    if (voice) {
+      utterance.voice = voice;
+    }
     
     utterance.onstart = () => setIsPlaying(true);
     utterance.onend = () => setIsPlaying(false);

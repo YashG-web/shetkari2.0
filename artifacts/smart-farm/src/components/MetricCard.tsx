@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { LucideIcon } from 'lucide-react';
+import { useTranslation } from '@/lib/translations';
 
 interface MetricCardProps {
   title: string;
@@ -16,6 +17,7 @@ interface MetricCardProps {
 }
 
 export function MetricCard({ title, value, unit, icon: Icon, trend, isPositive, colorClass = "text-primary", delay = 0, predictedValue, statusMessage }: MetricCardProps) {
+  const tr = useTranslation();
   return (
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
@@ -47,7 +49,7 @@ export function MetricCard({ title, value, unit, icon: Icon, trend, isPositive, 
           {predictedValue !== undefined && (
             <div className="w-full mt-2 flex items-center gap-2">
               <span className="px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/40 text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest border border-indigo-100 dark:border-indigo-900/50">
-                AI Accuracy Check: {predictedValue}{unit}
+                {tr('sensor.ai_accuracy')}: {predictedValue}{unit}
               </span>
             </div>
           )}

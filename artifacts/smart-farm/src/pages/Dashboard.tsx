@@ -17,7 +17,6 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 
 export default function Dashboard() {
-  const { language } = useAppStore();
   const tr = useTranslation();
   
   const { data: sensorData, isLoading: isLoadingSensor } = useGetSensorData({
@@ -152,17 +151,17 @@ export default function Dashboard() {
           <div className="relative z-10 p-8 md:p-12 flex flex-col md:flex-row items-center justify-between gap-8">
             <div className="text-primary-foreground max-w-2xl">
               <h1 className="text-4xl md:text-5xl font-display font-bold mb-4 text-balance">
-                SHETKARI Intelligence
+                {tr('app.title')}
               </h1>
               <p className="text-primary-foreground/80 text-lg md:text-xl font-medium mb-8">
-                Real-time insights and AI recommendations for optimal crop health and yield.
+                {tr('app.subtitle')}
               </p>
               
               <Link 
                 href="/recommendation" 
                 className="inline-flex items-center gap-2 px-8 py-4 bg-white text-primary rounded-2xl font-bold hover:bg-opacity-90 hover:scale-105 active:scale-95 transition-all shadow-xl shadow-black/10"
               >
-                {tr('action.get_recommendation', language)}
+                {tr('action.get_recommendation')}
                 <ArrowRight className="w-5 h-5" />
               </Link>
             </div>
@@ -175,7 +174,7 @@ export default function Dashboard() {
                     <CloudRain className="w-8 h-8" />
                   </div>
                   <div>
-                    <h3 className="text-slate-900 font-bold text-lg">{tr("weather.summary", language)}</h3>
+                    <h3 className="text-slate-900 font-bold text-lg">{tr("weather.summary")}</h3>
                     <p className="text-slate-700 font-medium text-sm capitalize">{weatherData.description}</p>
                   </div>
                 </div>
@@ -205,13 +204,13 @@ export default function Dashboard() {
                 }`}
               >
                 <div className={`w-2 h-2 rounded-full ${isOffline ? 'bg-white animate-pulse' : 'bg-white shadow-[0_0_8px_white]'}`} />
-                {isOffline ? "ESP32: OFFLINE" : "LIVE IOT DATA"}
+                {isOffline ? tr('sensor.esp32_offline') : tr('sensor.iot_online')}
               </motion.div>
             )}
             {isSimulatorOn && (
               <div className="flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-black bg-amber-500/90 text-white border border-amber-400 shadow-lg backdrop-blur-md">
                 <Zap className="w-3 h-3 fill-current" />
-                SIMULATION MODE
+                {tr('sensor.simulator_active')}
               </div>
             )}
           </div>
@@ -220,7 +219,7 @@ export default function Dashboard() {
         {/* Metrics Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <MetricCard
-            title={tr('sensor.soil_moisture', language)}
+            title={tr('sensor.soil_moisture')}
             value={isGlobalLoading ? '-' : activeSensorData?.soilMoisture ?? '-'}
             unit="%"
             icon={Droplets}
@@ -229,7 +228,7 @@ export default function Dashboard() {
             predictedValue={(activeSensorData as any)?.rfPrediction}
           />
           <MetricCard
-            title={tr('sensor.temperature', language)}
+            title={tr('sensor.temperature')}
             value={isGlobalLoading ? '-' : activeSensorData?.temperature ?? '-'}
             unit="°C"
             icon={ThermometerSun}
@@ -237,7 +236,7 @@ export default function Dashboard() {
             delay={0.2}
           />
           <MetricCard
-            title={tr('sensor.humidity', language)}
+            title={tr('sensor.humidity')}
             value={isGlobalLoading ? '-' : activeSensorData?.humidity ?? '-'}
             unit="%"
             icon={Wind}
@@ -245,8 +244,8 @@ export default function Dashboard() {
             delay={0.3}
           />
           <MetricCard
-            title={tr('sensor.pump_status', language)}
-            value={isGlobalLoading ? '-' : tr(activeSensorData?.pumpStatus === 'ON' ? 'status.on' : 'status.off', language)}
+            title={tr('sensor.pump_status')}
+            value={isGlobalLoading ? '-' : tr(activeSensorData?.pumpStatus === 'ON' ? 'status.on' : 'status.off')}
             icon={Power}
             colorClass={activeSensorData?.pumpStatus === 'ON' ? 'text-primary' : 'text-gray-400'}
             delay={0.4}
@@ -256,7 +255,7 @@ export default function Dashboard() {
 
         <div className="grid grid-cols-1 gap-6">
           <MetricCard
-            title="AI Fertilizer Recommendation"
+            title={tr('section.fertilizer_recommendation')}
             value={isGlobalLoading ? '-' : (isSimulatorOn ? sensorData?.fertilizerRecommendation : sensorData?.fertilizerRecommendation) ?? '-'}
             icon={Sprout}
             colorClass="text-green-600"
@@ -287,7 +286,7 @@ export default function Dashboard() {
               <div className="p-2 bg-indigo-600 text-white rounded-lg">
                 <Sparkles className="w-4 h-4" />
               </div>
-              <span className="text-sm font-bold text-indigo-900 dark:text-indigo-200 uppercase tracking-tight">AI Reasoner (Decision Tree):</span>
+              <span className="text-sm font-bold text-indigo-900 dark:text-indigo-200 uppercase tracking-tight">{tr('section.ai_reasoner')}</span>
             </div>
             <div className="flex flex-wrap gap-2 justify-center">
               {(activeSensorData as any).dtInsights.map((insight: string, i: number) => (
