@@ -9,6 +9,7 @@ import type { SimulatorConfigControls } from "./simulatorConfigControls";
 import type { SimulatorConfigModels } from "./simulatorConfigModels";
 
 export interface SimulatorConfig {
+  enabled?: boolean;
   models: SimulatorConfigModels;
   controls: SimulatorConfigControls;
 }

@@ -173,6 +173,7 @@ export const AnalyzeGrowthStageResponse = zod.object({
  * @summary Get simulator configuration
  */
 export const GetSimulatorConfigResponse = zod.object({
+  enabled: zod.boolean().optional().describe("Whether the simulator is currently active"),
   models: zod.object({
     lstm: zod.boolean(),
     randomForest: zod.boolean(),
@@ -196,6 +197,7 @@ export const GetSimulatorConfigResponse = zod.object({
  * @summary Update simulator configuration
  */
 export const UpdateSimulatorConfigBody = zod.object({
+  enabled: zod.boolean().optional(),
   models: zod.object({
     lstm: zod.boolean(),
     randomForest: zod.boolean(),
@@ -216,6 +218,7 @@ export const UpdateSimulatorConfigBody = zod.object({
 });
 
 export const UpdateSimulatorConfigResponse = zod.object({
+  enabled: zod.boolean().optional(),
   models: zod.object({
     lstm: zod.boolean(),
     randomForest: zod.boolean(),

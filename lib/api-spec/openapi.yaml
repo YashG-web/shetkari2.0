@@ -338,6 +338,7 @@ components:
     SimulatorConfig:
       type: object
       properties:
+        enabled: { type: boolean }
         models:
           type: object
           properties:

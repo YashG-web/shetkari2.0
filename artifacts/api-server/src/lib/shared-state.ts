@@ -1,6 +1,11 @@
 import axios from "axios";
 
 const ML_SERVICE_URL = process.env.ML_SERVICE_URL || "http://localhost:8000";
+const ESP32_BASE_URL = process.env.ESP32_BASE_URL || "http://10.11.61.104/";
+
+function map(x: number, in_min: number, in_max: number, out_min: number, out_max: number): number {
+  return Number(((x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min).toFixed(2));
+}
 
 const FERTILIZER_LABEL_MAP: Record<string, string> = {
   "Balanced NPK": "Iffco NPK 12-32-16",
@@ -47,6 +52,7 @@ export function getRuleBasedFertilizerRecommendation(data: {
 
 // Shared simulation state for all routes
 export let simulatorConfig = {
+  enabled: true,
   models: {
     randomForest: true,
     regression: true,
@@ -257,8 +263,14 @@ function calculateGrowthStage(age: number, nitrogen: number): { stage: string, c
 
 
 // Async loop to fetch real ML predictions
-export async function runMLInference() {
-  const data = calculateStep(simulatorConfig, currentSimulatedData);
+export async function runMLInference(forceData?: any) {
+  // If forceData is provided (IoT sync), use it directly. 
+  // Otherwise, if simulator is on, calculate next physical step.
+  // If simulator is off and no forceData, stay at current state.
+  const data = forceData || (simulatorConfig.enabled 
+    ? calculateStep(simulatorConfig, currentSimulatedData) 
+    : currentSimulatedData);
+
   const mlData: any = { ...data };
   
   // Persist the recommendation from previous step if we don't trigger AI
@@ -385,13 +397,41 @@ export async function runMLInference() {
   if (sensorHistory.length > 12) sensorHistory.shift();
 }
 
+// Global state for IoT connection
+export let iotStatus: { status: "online" | "offline" | "connecting", lastError?: string } = { status: "connecting" };
+
 // Start the iterative simulation (Faster refresh rate)
 (function loop() {
   setTimeout(async () => {
-    await runMLInference();
+    if (simulatorConfig.enabled) {
+      await runMLInference();
+    }
+    // Background sync removed - now driven by frontend/direct IoT route
     loop();
-  }, 200); // Near Real-Time: 200ms
+  }, 200); 
 })();
+
+export async function updateStateFromIoT(data: { soilRaw: number, temperature: number, humidity: number }) {
+  const soilMoisturePercent = map(data.soilRaw, 0, 1023, 100, 0);
+  
+  const newState = {
+    ...currentSimulatedData,
+    soilMoisture: soilMoisturePercent,
+    temperature: data.temperature,
+    humidity: data.humidity,
+    timestamp: new Date().toISOString(),
+  };
+
+  currentSimulatedData = newState;
+  iotStatus = { status: "online" };
+  
+  // Trigger ML inference with the ACTUAL hardware data (no simulation physics)
+  try {
+    await runMLInference(newState);
+  } catch (err) {
+    console.error("ML Inference trigger failed during IoT sync", err);
+  }
+}
 
 // Helper for immediate trigger on config change
 export const triggerInstantML = runMLInference;

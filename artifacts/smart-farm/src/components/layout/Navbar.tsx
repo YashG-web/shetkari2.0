@@ -1,15 +1,49 @@
 import { Link, useLocation } from 'wouter';
 import { useAppStore, Language } from '@/store/use-app-store';
-import { Leaf, Menu, X, Globe } from 'lucide-react';
+import { Leaf, Menu, X, Globe, Activity } from 'lucide-react';
 import { useTranslation } from '@/lib/translations';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useGetSimulatorConfig, useUpdateSimulatorConfig, getGetSimulatorConfigQueryKey } from '@workspace/api-client-react';
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from 'sonner';
 
 export function Navbar() {
+  const queryClient = useQueryClient();
   const [location] = useLocation();
-  const { language, setLanguage } = useAppStore();
+  const { language, setLanguage, isSimulatorOn, setIsSimulatorOn } = useAppStore();
   const tr = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
+
+  const { data: config } = useGetSimulatorConfig();
+  const updateConfig = useUpdateSimulatorConfig({
+    mutation: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getGetSimulatorConfigQueryKey() });
+      }
+    }
+  });
+
+  // Sync state with backend config on mount
+  useEffect(() => {
+    if (config) {
+      setIsSimulatorOn(config.enabled ?? true);
+    }
+  }, [config, setIsSimulatorOn]);
+
+  const toggleSimulator = () => {
+    const newVal = !isSimulatorOn;
+    setIsSimulatorOn(newVal);
+    if (config) {
+      updateConfig.mutate({ 
+        data: { 
+          ...config, 
+          enabled: newVal 
+        } 
+      });
+      toast.info(newVal ? "Simulator Mode Active" : "Live IoT Mode Active");
+    }
+  };
 
   const navLinks = [
     { path: '/', label: tr('nav.dashboard', language) },
@@ -57,6 +91,18 @@ export function Navbar() {
 
           {/* Controls */}
           <div className="hidden md:flex items-center gap-4">
+            <button
+              onClick={toggleSimulator}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all font-bold text-xs ring-1 ${
+                isSimulatorOn 
+                  ? 'bg-amber-50 text-amber-600 ring-amber-200 shadow-sm' 
+                  : 'bg-emerald-50 text-emerald-600 ring-emerald-200 shadow-sm shadow-emerald-100'
+              }`}
+            >
+              <Activity className={`w-4 h-4 ${!isSimulatorOn ? 'animate-pulse' : ''}`} />
+              {isSimulatorOn ? "SIMULATOR: ON" : "LIVE MODE: ACTIVE"}
+            </button>
+
             <button 
               onClick={toggleLang}
               className="flex items-center gap-2 px-4 py-2 rounded-full bg-accent/50 hover:bg-accent text-primary transition-colors font-medium text-sm"

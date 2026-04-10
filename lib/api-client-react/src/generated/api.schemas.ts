@@ -152,6 +152,7 @@ export type SimulatorConfigControls = {
 };
 
 export interface SimulatorConfig {
+  enabled?: boolean;
   models: SimulatorConfigModels;
   controls: SimulatorConfigControls;
 }

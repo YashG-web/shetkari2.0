@@ -6,6 +6,7 @@ import recommendationRouter from "./recommendation";
 import simulatorRouter from "./simulator";
 import predictRouter from "./predict";
 import growthStageRouter from "./growth-stage";
+import iotRouter from "./iot";
 
 const router: IRouter = Router();
 
@@ -16,5 +17,6 @@ router.use(recommendationRouter);
 router.use(simulatorRouter);
 router.use(predictRouter);
 router.use(growthStageRouter);
+router.use(iotRouter);
 
 export default router;

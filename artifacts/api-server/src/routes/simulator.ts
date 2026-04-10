@@ -10,7 +10,14 @@ router.get("/simulator/config", (req, res) => {
 
 router.post("/simulator/config", async (req, res) => {
   const body = UpdateSimulatorConfigBody.parse(req.body);
-  updateConfig(body);
+  
+  // Ensure we don't pass undefined to a required boolean field
+  const configUpdate = {
+    ...body,
+    enabled: body.enabled ?? simulatorConfig.enabled
+  };
+  
+  updateConfig(configUpdate);
   
   // Instant trigger for real-time responsiveness
   runMLInference().catch(err => console.error("Immediate ML trigger failed", err));

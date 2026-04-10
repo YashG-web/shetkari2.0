@@ -11,8 +11,10 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { MetricCard } from '@/components/MetricCard';
 import { AnalyticsChart } from '@/components/AnalyticsChart';
 import { Link } from 'wouter';
-import { Droplets, ThermometerSun, Wind, Power, AlertTriangle, ArrowRight, CloudRain, Sparkles, Sprout } from 'lucide-react';
+import { Droplets, ThermometerSun, Wind, Power, AlertTriangle, ArrowRight, CloudRain, Sparkles, Sprout, Activity, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useState, useEffect } from 'react';
+import axios from 'axios';
 
 export default function Dashboard() {
   const { language } = useAppStore();
@@ -30,6 +32,103 @@ export default function Dashboard() {
       queryKey: getGetWeatherQueryKey()
     }
   });
+
+  const { isSimulatorOn } = useAppStore();
+
+  const [hardwareData, setHardwareData] = useState<any>(null);
+  const [isHardwareOffline, setIsHardwareOffline] = useState(false);
+
+  // Directly fetch from hardware when Simulator is OFF
+  useEffect(() => {
+    let interval: any;
+    if (!isSimulatorOn) {
+      const fetchHardware = async () => {
+        try {
+          const response = await axios.get('http://10.11.61.104/', { timeout: 3000 });
+          setIsHardwareOffline(false);
+          
+          let raw = response.data;
+          console.log("🔍 [IOT DEBUG] Dashboard Raw Response:", raw);
+
+          // Robust parsing logic
+          if (typeof raw === 'string') {
+            try {
+              raw = JSON.parse(raw);
+            } catch (e) {
+              console.warn("JSON.parse failed, using regex fallback");
+              const extract = (key: string) => {
+                // Improved regex to handle "soil":123, "soil":"123", soil:123, etc.
+                const regex = new RegExp(`"?${key}"?\\s*[:=]\\s*"?([0-9.]+)"?`, 'i');
+                const match = raw.match(regex);
+                return match ? match[1] : null;
+              };
+              raw = {
+                soil: extract('soil') || extract('moisture'),
+                temp: extract('temp') || extract('temperature'),
+                hum: extract('hum') || extract('humidity')
+              };
+            }
+          }
+          
+          if (!raw || typeof raw !== 'object') return;
+
+          // Aggressive field detection 
+          const getField = (keys: string[]) => {
+            for (const k of keys) {
+              const val = raw[k] ?? raw[k.toLowerCase()] ?? raw[k.toUpperCase()];
+              if (val !== undefined && val !== null) return val;
+            }
+            return null;
+          };
+
+          const soilVal = getField(['soil', 'moisture', 's']);
+          const tempVal = getField(['temp', 'temperature', 't']);
+          const humVal = getField(['hum', 'humidity', 'h']);
+
+          const soilRaw = soilVal !== null ? Number(soilVal) : NaN;
+          // Typical mapping: 1023 (dry) -> 0%, 0 (wet) -> 100%
+          const moisture = isNaN(soilRaw) ? 0 : Math.max(0, Math.min(100, Number((100 - (soilRaw / 10.23)).toFixed(1))));
+          
+          const temperature = tempVal !== null ? parseFloat(tempVal) : 0;
+          const humidity = humVal !== null ? parseFloat(humVal) : 0;
+
+          const processed = {
+            ...raw,
+            soilRaw, // Keep the raw number for debugging
+            soilMoisture: moisture,
+            temperature,
+            humidity,
+            status: 'online',
+            timestamp: new Date().toISOString()
+          };
+
+          console.log("✅ [IOT DEBUG] Dashboard Processed Data:", processed);
+          setHardwareData(processed);
+
+          // Sync to backend
+          if (!isNaN(soilRaw)) {
+            axios.post('/api/iot/sync', {
+              soilRaw,
+              temperature,
+              humidity
+            }).catch(err => console.error("Sync to backend failed", err));
+          }
+
+        } catch (err) {
+          console.error("Hardware network fetch failed", err);
+          setIsHardwareOffline(true);
+        }
+      };
+
+      fetchHardware();
+      interval = setInterval(fetchHardware, 3000);
+    }
+    return () => clearInterval(interval);
+  }, [isSimulatorOn]);
+
+  const activeSensorData = isSimulatorOn ? sensorData : hardwareData;
+  const isGlobalLoading = isSimulatorOn ? isLoadingSensor : (!hardwareData && !isHardwareOffline);
+  const isOffline = !isSimulatorOn && isHardwareOffline;
 
   return (
     <AppLayout>
@@ -92,22 +191,46 @@ export default function Dashboard() {
               </div>
             )}
           </div>
+          
+          {/* Mode Indicator Overlay */}
+          <div className="absolute top-4 right-4 flex gap-2">
+            {!isSimulatorOn && (
+              <motion.div 
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-black shadow-lg backdrop-blur-md border ${
+                  isOffline 
+                    ? 'bg-red-500/90 text-white border-red-400' 
+                    : 'bg-emerald-500/90 text-white border-emerald-400'
+                }`}
+              >
+                <div className={`w-2 h-2 rounded-full ${isOffline ? 'bg-white animate-pulse' : 'bg-white shadow-[0_0_8px_white]'}`} />
+                {isOffline ? "ESP32: OFFLINE" : "LIVE IOT DATA"}
+              </motion.div>
+            )}
+            {isSimulatorOn && (
+              <div className="flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-black bg-amber-500/90 text-white border border-amber-400 shadow-lg backdrop-blur-md">
+                <Zap className="w-3 h-3 fill-current" />
+                SIMULATION MODE
+              </div>
+            )}
+          </div>
         </motion.div>
 
         {/* Metrics Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <MetricCard
             title={tr('sensor.soil_moisture', language)}
-            value={isLoadingSensor ? '-' : sensorData?.soilMoisture ?? '-'}
+            value={isGlobalLoading ? '-' : activeSensorData?.soilMoisture ?? '-'}
             unit="%"
             icon={Droplets}
             colorClass="text-blue-500"
             delay={0.1}
-            predictedValue={(sensorData as any)?.rfPrediction}
+            predictedValue={(activeSensorData as any)?.rfPrediction}
           />
           <MetricCard
             title={tr('sensor.temperature', language)}
-            value={isLoadingSensor ? '-' : sensorData?.temperature ?? '-'}
+            value={isGlobalLoading ? '-' : activeSensorData?.temperature ?? '-'}
             unit="°C"
             icon={ThermometerSun}
             colorClass="text-orange-500"
@@ -115,7 +238,7 @@ export default function Dashboard() {
           />
           <MetricCard
             title={tr('sensor.humidity', language)}
-            value={isLoadingSensor ? '-' : sensorData?.humidity ?? '-'}
+            value={isGlobalLoading ? '-' : activeSensorData?.humidity ?? '-'}
             unit="%"
             icon={Wind}
             colorClass="text-teal-500"
@@ -123,38 +246,38 @@ export default function Dashboard() {
           />
           <MetricCard
             title={tr('sensor.pump_status', language)}
-            value={isLoadingSensor ? '-' : tr(sensorData?.pumpStatus === 'ON' ? 'status.on' : 'status.off', language)}
+            value={isGlobalLoading ? '-' : tr(activeSensorData?.pumpStatus === 'ON' ? 'status.on' : 'status.off', language)}
             icon={Power}
-            colorClass={sensorData?.pumpStatus === 'ON' ? 'text-primary' : 'text-gray-400'}
+            colorClass={activeSensorData?.pumpStatus === 'ON' ? 'text-primary' : 'text-gray-400'}
             delay={0.4}
-            statusMessage={(sensorData as any)?.ruleEngineOutput}
+            statusMessage={(activeSensorData as any)?.ruleEngineOutput}
           />
         </div>
 
         <div className="grid grid-cols-1 gap-6">
           <MetricCard
             title="AI Fertilizer Recommendation"
-            value={isLoadingSensor ? '-' : sensorData?.fertilizerRecommendation ?? '-'}
+            value={isGlobalLoading ? '-' : (isSimulatorOn ? sensorData?.fertilizerRecommendation : sensorData?.fertilizerRecommendation) ?? '-'}
             icon={Sprout}
             colorClass="text-green-600"
             delay={0.5}
-            statusMessage={isLoadingSensor ? undefined : `Source: ${sensorData?.fertilizerSource ?? 'Fallback'}`}
+            statusMessage={isGlobalLoading ? undefined : `Source: ${activeSensorData?.fertilizerSource ?? 'Fallback'}`}
           />
         </div>
 
         {/* Analytics Section */}
         <AnalyticsChart 
           currentData={{
-            soilMoisture: sensorData?.soilMoisture || 0,
-            nitrogen: sensorData?.nitrogen || 0,
-            phosphorus: sensorData?.phosphorus || 0,
-            potassium: sensorData?.potassium || 0,
-            tsForecastData: (sensorData as any)?.tsForecastData
+            soilMoisture: activeSensorData?.soilMoisture || 0,
+            nitrogen: activeSensorData?.nitrogen || 0,
+            phosphorus: activeSensorData?.phosphorus || 0,
+            potassium: activeSensorData?.potassium || 0,
+            tsForecastData: (activeSensorData as any)?.tsForecastData
           }} 
         />
 
         {/* AI Reasoner Ribbon */}
-        {(sensorData as any)?.dtInsights && (sensorData as any).dtInsights.length > 0 && (
+        {(activeSensorData as any)?.dtInsights && (activeSensorData as any).dtInsights.length > 0 && (
           <motion.div 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -167,7 +290,7 @@ export default function Dashboard() {
               <span className="text-sm font-bold text-indigo-900 dark:text-indigo-200 uppercase tracking-tight">AI Reasoner (Decision Tree):</span>
             </div>
             <div className="flex flex-wrap gap-2 justify-center">
-              {(sensorData as any).dtInsights.map((insight: string, i: number) => (
+              {(activeSensorData as any).dtInsights.map((insight: string, i: number) => (
                 <span key={i} className="text-xs font-medium text-indigo-700 dark:text-indigo-300 bg-white dark:bg-indigo-950/60 px-3 py-1 rounded-full border border-indigo-100 dark:border-indigo-900 shadow-sm">
                   {insight}
                 </span>
@@ -180,4 +303,3 @@ export default function Dashboard() {
     </AppLayout>
   );
 }
-

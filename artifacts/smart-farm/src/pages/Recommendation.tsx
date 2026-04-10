@@ -1,4 +1,4 @@
-import { useGetRecommendation } from '@workspace/api-client-react';
+import { useGetRecommendation, getGetRecommendationQueryKey } from '@workspace/api-client-react';
 import { useTranslation } from '@/lib/translations';
 import { useAppStore } from '@/store/use-app-store';
 import { useTTS } from '@/hooks/use-tts';
@@ -6,12 +6,52 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { ShieldCheck, AlertTriangle, AlertOctagon, CheckCircle2, ShoppingCart, Volume2, SquareSquare } from 'lucide-react';
 import { motion } from 'framer-motion';
 
+import { useState, useEffect } from 'react';
+import axios from 'axios';
+
 export default function Recommendation() {
-  const { language } = useAppStore();
+  const { language, isSimulatorOn } = useAppStore();
   const tr = useTranslation();
   const { speak, isPlaying } = useTTS();
   
-  const { data: rec, isLoading } = useGetRecommendation();
+  const { data: rec, isLoading, refetch } = useGetRecommendation({
+    query: {
+      queryKey: getGetRecommendationQueryKey(),
+      refetchInterval: 3000
+    }
+  });
+
+  // Ensure hardware is synced even from the Recommendation page
+  useEffect(() => {
+    let interval: any;
+    if (!isSimulatorOn) {
+      const fetchAndSync = async () => {
+        try {
+          const response = await axios.get('http://10.154.16.104/', { timeout: 3000 });
+          const raw = typeof response.data === 'string' ? JSON.parse(response.data) : response.data;
+          
+          const regex = new RegExp(`"?soil"?\\s*[:=]\\s*"?([0-9.]+)"?`, 'i');
+          const match = JSON.stringify(raw).match(regex);
+          const soilRaw = match ? Number(match[1]) : (raw.soil ? Number(raw.soil) : NaN);
+          
+          if (!isNaN(soilRaw)) {
+            await axios.post('/api/iot/sync', {
+              soilRaw,
+              temperature: parseFloat(raw.temp || raw.temperature || 0),
+              humidity: parseFloat(raw.hum || raw.humidity || 0)
+            });
+            refetch(); // Trigger UI update after sync
+          }
+        } catch (err) {
+          console.error("Recommendation page sync failed", err);
+        }
+      };
+      
+      fetchAndSync();
+      interval = setInterval(fetchAndSync, 3000);
+    }
+    return () => clearInterval(interval);
+  }, [isSimulatorOn, refetch]);
 
   const handleSpeak = () => {
     if (!rec) return;
