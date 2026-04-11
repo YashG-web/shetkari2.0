@@ -86,7 +86,8 @@ export default function Recommendation() {
 
   const handleSpeak = () => {
     if (!rec) return;
-    speak(tr(rec.irrigationAdvisory, language));
+    const text = `${tr(rec.cropCondition, language)}. ${tr('rec.suggested_actions', language)}: ${tr(rec.suggestedActions[0], language)}`;
+    speak(text);
   };
 
   const riskStyles = {
@@ -174,11 +175,10 @@ export default function Recommendation() {
                 
                 <div className="md:col-span-7 p-8 space-y-6">
                   <div className="relative">
-                    <h5 className="text-xs font-black uppercase tracking-widest text-blue-600 mb-3">{tr('rec.irrigation_advisory', language)}</h5>
+                    <h5 className="text-xs font-black uppercase tracking-widest text-blue-600 mb-3">{tr('rec.identified_issue', language)}</h5>
                     <p className="text-xl font-medium text-foreground leading-relaxed italic">
-                      "{tr(rec.irrigationAdvisory || "Maintain current moisture levels for optimal growth.", language)}"
+                      "{translateDynamic(rec.identifiedIssue)}"
                     </p>
-
                   </div>
                   
                   <div className="pt-6 border-t border-blue-50">

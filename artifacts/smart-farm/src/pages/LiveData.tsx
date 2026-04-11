@@ -232,17 +232,7 @@ export default function LiveData() {
         </div>
 
         {/* Dual Analysis Cards */}
-        <div className="grid lg:grid-cols-2 gap-8">
-          <div className="space-y-4">
-            <h2 className="text-xl font-display font-bold text-foreground flex items-center gap-2">
-              <CloudRain className="text-blue-500 w-6 h-6" />
-              {tr('rec.irrigation_advisory', language)}
-            </h2>
-            <div className="bg-card p-6 rounded-3xl border border-blue-100 shadow-sm min-h-[120px] flex items-center justify-center text-center italic text-foreground text-sm font-medium">
-              {isLoading ? '...' : tr(sensorData?.irrigationAdvisory || tr('live.analyzing_env', language), language)}
-            </div>
-          </div>
-
+        <div className="grid grid-cols-1 gap-8">
           <div className="space-y-4">
             <h2 className="text-xl font-display font-bold text-foreground flex items-center gap-2">
               <Activity className="text-emerald-500 w-6 h-6" />
