@@ -23,7 +23,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 
 export default function Recommendation() {
-  const { isSimulatorOn } = useAppStore();
+  const { language, isSimulatorOn } = useAppStore();
   const tr = useTranslation();
   const { speak, isPlaying } = useTTS();
   
@@ -34,17 +34,22 @@ export default function Recommendation() {
     }
   });
 
+  useEffect(() => {
+    if (rec) console.log("Recommendation Data:", rec);
+  }, [rec]);
+
+
   const translateDynamic = (text: string) => {
     if (!text) return text;
     // Check for ML Forecast suffix
     if (text.includes(" (ML Forecast: ")) {
       const parts = text.split(" (ML Forecast: ");
-      const base = tr(parts[0].trim());
+      const base = tr(parts[0].trim(), language);
       const suffixRaw = parts[1]; // e.g. "45% moisture in next step)"
       const percent = suffixRaw.split("%")[0];
-      return `${base} (${tr("ML Forecast")}: ${percent}% ${tr("moisture in next step")})`;
+      return `${base} (${tr("ML Forecast", language)}: ${percent}% ${tr("moisture in next step", language)})`;
     }
-    return tr(text);
+    return tr(text, language);
   };
 
   // Ensure hardware is synced even from the Recommendation page
@@ -53,7 +58,7 @@ export default function Recommendation() {
     if (!isSimulatorOn) {
       const fetchAndSync = async () => {
         try {
-          const response = await axios.get('http://10.154.16.104/', { timeout: 3000 });
+          const response = await axios.get('http://10.154.16.92/', { timeout: 3000 });
           const raw = typeof response.data === 'string' ? JSON.parse(response.data) : response.data;
           
           const regex = new RegExp(`"?soil"?\\s*[:=]\\s*"?([0-9.]+)"?`, 'i');
@@ -129,7 +134,7 @@ export default function Recommendation() {
             }`}
           >
             <Volume2 className="w-5 h-5" />
-            {tr('action.listen')}
+            {tr('action.listen', language)}
           </button>
         </div>
 
@@ -153,7 +158,8 @@ export default function Recommendation() {
                 <div className="md:col-span-5 bg-blue-50/50 dark:bg-blue-950/20 p-8 flex flex-col justify-center border-r border-blue-100 dark:border-blue-900/30">
                   <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-black border mb-6 ${riskStyles[rec.riskLevel as keyof typeof riskStyles]}`}>
                     <RiskIcon className="w-3.5 h-3.5" />
-                    {tr('rec.system_status', language)}{rec.riskLevel.toUpperCase()}
+                    {tr('rec.system_status', language)}{tr(`rec.${rec.riskLevel}`, language)}
+
                   </div>
                   <h4 className="text-2xl font-bold leading-tight mb-4">{tr(rec.cropCondition, language)}</h4>
                   <div className="flex items-center gap-4 text-muted-foreground">
@@ -170,8 +176,9 @@ export default function Recommendation() {
                   <div className="relative">
                     <h5 className="text-xs font-black uppercase tracking-widest text-blue-600 mb-3">{tr('rec.irrigation_advisory', language)}</h5>
                     <p className="text-xl font-medium text-foreground leading-relaxed italic">
-                      "{tr((rec as any).irrigationAdvisory || "Maintain current moisture levels for optimal growth.", language)}"
+                      "{tr(rec.irrigationAdvisory || "Maintain current moisture levels for optimal growth.", language)}"
                     </p>
+
                   </div>
                   
                   <div className="pt-6 border-t border-blue-50">
@@ -225,7 +232,8 @@ export default function Recommendation() {
                     className="flex items-center gap-3 px-10 py-5 bg-slate-900 text-white rounded-[20px] font-black group transition-all hover:scale-105 active:scale-95 shadow-xl shadow-black/10"
                   >
                     <ShoppingCart className="w-5 h-5 group-hover:animate-bounce" />
-                    {tr('rec.buy_on', language)}{rec.fertilizerRecommendation.platform.toUpperCase()}
+                    {tr('rec.buy_on', language)} {rec.fertilizerRecommendation.platform.toUpperCase()}
+
                   </a>
                 </div>
 
@@ -237,10 +245,12 @@ export default function Recommendation() {
                       </p>
                    </div>
                    <div className="space-y-4">
-                      <h5 className="text-xs font-black uppercase tracking-widest text-muted-foreground">{tr('rec.app_strategy', language)}</h5>
-                      <div className="bg-emerald-50/50 dark:bg-emerald-900/10 p-5 rounded-3xl border border-emerald-100 text-sm font-medium text-emerald-900 dark:text-emerald-200">
-                         {tr('rec.app_desc', language)}
-                      </div>
+                    <h5 className="text-xs font-black uppercase tracking-widest text-muted-foreground">{tr(rec.app_strategy || "rec.app_strategy", language)}</h5>
+                    <div className="bg-emerald-50/50 dark:bg-emerald-900/10 p-5 rounded-3xl border border-emerald-100 text-sm font-medium text-emerald-900 dark:text-emerald-200">
+                       {tr(rec.app_desc || "Not Available", language)}
+                    </div>
+
+
                    </div>
                 </div>
               </div>

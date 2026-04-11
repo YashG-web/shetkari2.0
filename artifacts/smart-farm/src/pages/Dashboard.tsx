@@ -32,7 +32,7 @@ export default function Dashboard() {
     }
   });
 
-  const { isSimulatorOn } = useAppStore();
+  const { isSimulatorOn, language } = useAppStore();
 
   const [hardwareData, setHardwareData] = useState<any>(null);
   const [isHardwareOffline, setIsHardwareOffline] = useState(false);
@@ -43,7 +43,7 @@ export default function Dashboard() {
     if (!isSimulatorOn) {
       const fetchHardware = async () => {
         try {
-          const response = await axios.get('http://10.154.16.104/', { timeout: 3000 });
+          const response = await axios.get('http://10.154.16.92/', { timeout: 3000 });
           setIsHardwareOffline(false);
           
           let raw = response.data;
@@ -224,37 +224,37 @@ export default function Dashboard() {
         {/* Metrics Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <MetricCard
-            title={tr('sensor.soil_moisture')}
-            value={isGlobalLoading ? '-' : activeSensorData?.soilMoisture ?? '-'}
-            unit="%"
+            title={tr('sensor.soil_moisture', language)}
+            value={isGlobalLoading || isOffline ? '-' : activeSensorData?.soilMoisture ?? '-'}
+            unit={isOffline ? "" : "%"}
             icon={Droplets}
             colorClass="text-blue-500"
             delay={0.1}
             predictedValue={(activeSensorData as any)?.rfPrediction}
           />
           <MetricCard
-            title={tr('sensor.temperature')}
-            value={isGlobalLoading ? '-' : activeSensorData?.temperature ?? '-'}
-            unit="°C"
+            title={tr('sensor.temperature', language)}
+            value={isGlobalLoading || isOffline ? '-' : activeSensorData?.temperature ?? '-'}
+            unit={isOffline ? "" : "°C"}
             icon={ThermometerSun}
             colorClass="text-orange-500"
             delay={0.2}
           />
           <MetricCard
-            title={tr('sensor.humidity')}
-            value={isGlobalLoading ? '-' : activeSensorData?.humidity ?? '-'}
-            unit="%"
+            title={tr('sensor.humidity', language)}
+            value={isGlobalLoading || isOffline ? '-' : activeSensorData?.humidity ?? '-'}
+            unit={isOffline ? "" : "%"}
             icon={Wind}
             colorClass="text-teal-500"
             delay={0.3}
           />
           <MetricCard
-            title={tr('sensor.pump_status')}
-            value={isGlobalLoading ? '-' : tr(activeSensorData?.pumpStatus === 'ON' ? 'status.on' : 'status.off')}
+            title={tr('sensor.pump_status', language)}
+            value={isGlobalLoading || isOffline ? '-' : tr(activeSensorData?.pumpStatus === 'ON' ? 'status.on' : 'status.off', language)}
             icon={Power}
-            colorClass={activeSensorData?.pumpStatus === 'ON' ? 'text-primary' : 'text-gray-400'}
+            colorClass={activeSensorData?.pumpStatus === 'ON' && !isOffline ? 'text-primary' : 'text-gray-400'}
             delay={0.4}
-            statusMessage={(activeSensorData as any)?.ruleEngineOutput}
+            statusMessage={isOffline ? tr('sensor.esp32_offline', language) : (activeSensorData as any)?.ruleEngineOutput}
           />
         </div>
 
@@ -265,7 +265,8 @@ export default function Dashboard() {
             icon={CloudRain}
             colorClass="text-blue-600"
             delay={0.5}
-            statusMessage={isGlobalLoading ? undefined : tr(`Logic: Environmental Physics`, language)}
+            statusMessage={isGlobalLoading ? undefined : `${tr('status.logic', language)}: ${tr('Environmental Physics', language)}`}
+
           />
           <MetricCard
             title={tr('dash.ai_fert_rec', language)}
@@ -273,7 +274,8 @@ export default function Dashboard() {
             icon={Sprout}
             colorClass="text-green-600"
             delay={0.6}
-            statusMessage={isGlobalLoading ? undefined : tr(`Source: ${activeSensorData?.fertilizerSource ?? 'Fallback'}`, language)}
+            statusMessage={isGlobalLoading ? undefined : `${tr('status.source', language)}: ${tr(activeSensorData?.fertilizerSource ?? 'Fallback', language)}`}
+
           />
         </div>
 
@@ -299,7 +301,7 @@ export default function Dashboard() {
               <div className="p-2 bg-indigo-600 text-white rounded-lg">
                 <Sparkles className="w-4 h-4" />
               </div>
-              <span className="text-sm font-bold text-indigo-900 dark:text-indigo-200 uppercase tracking-tight">{tr('section.ai_reasoner')}</span>
+              <span className="text-sm font-bold text-indigo-900 dark:text-indigo-200 uppercase tracking-tight">{tr('section.ai_reasoner', language)}</span>
             </div>
             <div className="flex flex-wrap gap-2 justify-center">
               {(activeSensorData as any).dtInsights.map((insight: string, i: number) => (

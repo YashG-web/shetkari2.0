@@ -221,7 +221,7 @@ export default function Simulator() {
                 <div className="flex justify-between items-center">
                   <CardTitle className="flex items-center gap-2 text-xl text-primary">
                     <Settings2 className="w-6 h-6" />
-                    {tr('sim.env_controls')}
+                    {tr('sim.env')}
                   </CardTitle>
                   <Button 
                     size="sm" 

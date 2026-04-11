@@ -141,7 +141,7 @@ export default function Support() {
           <MessageCircle className="w-12 h-12 text-primary/40 mx-auto mb-4" />
           <h4 className="text-lg font-bold mb-2">{tr('support.why_call', language)}</h4>
           <p className="text-muted-foreground text-sm leading-relaxed">
-            While SHETKARI AI helps with automation, human experts can provide deep context about your specific field conditions. Don't hesitate to call if the sensor data looks unexpected or if your crops show unusual signs.
+            {tr('support.why_call_desc', language)}
           </p>
         </section>
       </div>

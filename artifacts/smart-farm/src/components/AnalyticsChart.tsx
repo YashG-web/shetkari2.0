@@ -25,6 +25,7 @@ interface AnalyticsChartProps {
 
 export function AnalyticsChart({ currentData }: AnalyticsChartProps) {
   const tr = useTranslation();
+  const { language } = useAppStore();
 
   // Combine mock week data with live forecast if available
   // For a better UX, we'll merge the last point of history with the forecast
