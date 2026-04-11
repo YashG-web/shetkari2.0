@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { GetRecommendationResponse, type Types } from "@workspace/api-zod";
+import { type Types } from "@workspace/api-zod";
 import { currentSimulatedData, getRuleBasedFertilizerRecommendation } from "../lib/shared-state";
 import axios from "axios";
 
@@ -145,7 +145,7 @@ router.get("/recommendation", async (_req, res) => {
     console.error("ML Recommendation fetch failed, falling back to rule-based logic.");
   }
 
-  let rec;
+  let rec: Types.RecommendationData;
   const predictionSuffix = predictedMoisture !== null
     ? ` (ML Forecast: ${predictedMoisture}% moisture in next step)` 
     : "";

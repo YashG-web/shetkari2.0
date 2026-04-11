@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+pydantic
+numpy
+joblib
+scikit-learn
+tensorflow-cpu
+python-multipart
+axios

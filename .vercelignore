@@ -1,0 +1,13 @@
+# Vercel Ignore
+node_modules
+.venv
+venv
+ml-service
+whatsapp-bot
+scripts
+*.log
+.env*
+.git
+.github
+dist
+build
