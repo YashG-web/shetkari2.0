@@ -41,7 +41,6 @@ const MOCK_FERTILIZERS = [
 ];
 
 export default function Fertilizers() {
-  const { language } = useAppStore();
   const tr = useTranslation();
 
   return (
@@ -49,9 +48,9 @@ export default function Fertilizers() {
       <div className="space-y-8">
         <div>
           <h1 className="text-3xl font-display font-bold text-foreground">
-            {tr('nav.fertilizers', language)}
+            {tr('nav.fertilizers')}
           </h1>
-          <p className="text-muted-foreground mt-2">Recommended fertilizers based on common soil deficiencies.</p>
+          <p className="text-muted-foreground mt-2">{tr('fert.subtitle')}</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -69,10 +68,12 @@ export default function Fertilizers() {
               
               <div className="p-6 flex-1 flex flex-col">
                 <div className="flex justify-between items-start mb-2">
-                  <h3 className="text-xl font-bold text-foreground leading-tight">{item.name}</h3>
-                  <span className="bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap">
-                    {item.npkRatio}
-                  </span>
+                  <h3 className="text-xl font-bold text-foreground group-hover:text-primary transition-colors">
+                    {tr(item.name)}
+                  </h3>
+                  <div className="inline-block px-2.5 py-1 bg-primary/10 text-primary text-[10px] font-black rounded-lg uppercase tracking-wider">
+                    NPK: {item.npkRatio}
+                  </div>
                 </div>
                 
                 <p className="text-muted-foreground text-sm mt-2 flex-1">
@@ -83,7 +84,7 @@ export default function Fertilizers() {
                   <span className="text-xl font-bold text-foreground">{item.price}</span>
                   <button className="flex items-center gap-2 px-5 py-2.5 bg-foreground text-background rounded-xl font-semibold hover:bg-primary transition-colors">
                     <ShoppingCart className="w-4 h-4" />
-                    Buy
+                    {tr('action.buy')}
                   </button>
                 </div>
               </div>

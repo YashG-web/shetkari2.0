@@ -23,7 +23,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 
 export default function Recommendation() {
-  const { language, isSimulatorOn } = useAppStore();
+  const { isSimulatorOn } = useAppStore();
   const tr = useTranslation();
   const { speak, isPlaying } = useTTS();
   
@@ -33,6 +33,19 @@ export default function Recommendation() {
       refetchInterval: 3000
     }
   });
+
+  const translateDynamic = (text: string) => {
+    if (!text) return text;
+    // Check for ML Forecast suffix
+    if (text.includes(" (ML Forecast: ")) {
+      const parts = text.split(" (ML Forecast: ");
+      const base = tr(parts[0].trim());
+      const suffixRaw = parts[1]; // e.g. "45% moisture in next step)"
+      const percent = suffixRaw.split("%")[0];
+      return `${base} (${tr("ML Forecast")}: ${percent}% ${tr("moisture in next step")})`;
+    }
+    return tr(text);
+  };
 
   // Ensure hardware is synced even from the Recommendation page
   useEffect(() => {
@@ -116,7 +129,7 @@ export default function Recommendation() {
             }`}
           >
             <Volume2 className="w-5 h-5" />
-            {tr('action.listen', language)}
+            {tr('action.listen')}
           </button>
         </div>
 

@@ -24,7 +24,6 @@ interface AnalyticsChartProps {
 }
 
 export function AnalyticsChart({ currentData }: AnalyticsChartProps) {
-  const { language } = useAppStore();
   const tr = useTranslation();
 
   // Combine mock week data with live forecast if available
@@ -73,12 +72,12 @@ export function AnalyticsChart({ currentData }: AnalyticsChartProps) {
               
               {currentData?.tsForecastData ? (
                 <>
-                  <Area type="monotone" dataKey="moisture" name="Predicted Trend" stroke="#8b5cf6" strokeWidth={3} strokeDasharray="5 5" fillOpacity={1} fill="url(#colorForecast)" />
+                  <Area type="monotone" dataKey="moisture" name={tr('status.predicted_trend')} stroke="#8b5cf6" strokeWidth={3} strokeDasharray="5 5" fillOpacity={1} fill="url(#colorForecast)" />
                 </>
               ) : (
                 <>
-                  <Area type="monotone" dataKey="moisture" name="Soil Moisture %" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorMoisture)" />
-                  <Area type="monotone" dataKey="temp" name="Temperature °C" stroke="#f97316" strokeWidth={3} fillOpacity={1} fill="rgba(249, 115, 22, 0.1)" />
+                  <Area type="monotone" dataKey="moisture" name={tr('sensor.soil_moisture')} stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorMoisture)" />
+                  <Area type="monotone" dataKey="temp" name={tr('sensor.temperature')} stroke="#f97316" strokeWidth={3} fillOpacity={1} fill="rgba(249, 115, 22, 0.1)" />
                 </>
               )}
               <Legend verticalAlign="top" height={36} iconType="circle" />

@@ -11,7 +11,6 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 
 export default function LiveData() {
-  const { language } = useAppStore();
   const tr = useTranslation();
   
   const { isSimulatorOn } = useAppStore();
@@ -128,7 +127,7 @@ export default function LiveData() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card p-6 rounded-3xl border border-border/50 shadow-sm">
           <div>
             <h1 className="text-3xl font-display font-bold text-foreground">
-              {tr('nav.live_data', language)}
+              {tr('nav.live_data')}
             </h1>
             <div className="flex items-center gap-3 mt-2 text-muted-foreground text-sm font-medium">
               <span className="flex items-center gap-2">
@@ -140,7 +139,7 @@ export default function LiveData() {
               </span>
               <span>•</span>
               <span>
-                {tr('sensor.last_updated', language)}: {sensorData?.timestamp || sensorData?.connectedAt ? format(new Date(sensorData.timestamp || sensorData.connectedAt), 'HH:mm:ss') : '-'}
+                {tr('sensor.last_updated')}: {sensorData?.timestamp || sensorData?.connectedAt ? format(new Date(sensorData.timestamp || sensorData.connectedAt), 'HH:mm:ss') : '-'}
               </span>
             </div>
           </div>
@@ -161,7 +160,7 @@ export default function LiveData() {
               href="/recommendation"
               className="px-6 py-3 rounded-xl bg-primary text-primary-foreground font-semibold hover:shadow-lg hover:shadow-primary/25 hover:-translate-y-0.5 transition-all"
             >
-              {tr('action.analyze', language)}
+              {tr('action.analyze')}
             </Link>
           </div>
         </div>
@@ -177,21 +176,21 @@ export default function LiveData() {
             </h2>
             <div className="grid sm:grid-cols-2 gap-4">
               <MetricCard
-                title={tr('sensor.soil_moisture', language)}
+                title={tr('sensor.soil_moisture')}
                 value={isLoading ? '-' : sensorData?.soilMoisture ?? '-'}
                 unit="%"
                 icon={Droplets}
                 colorClass="text-blue-500"
               />
               <MetricCard
-                title={tr('sensor.temperature', language)}
+                title={tr('sensor.temperature')}
                 value={isLoading ? '-' : sensorData?.temperature ?? '-'}
                 unit="°C"
                 icon={ThermometerSun}
                 colorClass="text-orange-500"
               />
               <MetricCard
-                title={tr('sensor.humidity', language)}
+                title={tr('sensor.humidity')}
                 value={isLoading ? '-' : sensorData?.humidity ?? '-'}
                 unit="%"
                 icon={Wind}

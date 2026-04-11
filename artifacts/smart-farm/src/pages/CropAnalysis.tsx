@@ -16,7 +16,6 @@ type AnalysisResult = {
 } | null;
 
 export default function CropAnalysis() {
-  const { language } = useAppStore();
   const tr = useTranslation();
   const { toast } = useToast();
   const { speak, isPlaying } = useTTS();
@@ -88,9 +87,9 @@ export default function CropAnalysis() {
       <div className="max-w-4xl mx-auto space-y-8">
         <div>
           <h1 className="text-3xl font-display font-bold text-foreground">
-            {tr('nav.crop_analysis', language)}
+            {tr('nav.crop_analysis')}
           </h1>
-          <p className="text-muted-foreground mt-2">Upload a photo of your crop to instantly identify its current growth stage and get optimization tips.</p>
+          <p className="text-muted-foreground mt-2">{tr('analysis.subtitle')}</p>
         </div>
 
         <div className="grid md:grid-cols-2 gap-8">
@@ -114,7 +113,7 @@ export default function CropAnalysis() {
                       onClick={() => fileInputRef.current?.click()}
                       className="bg-white/20 backdrop-blur-md text-white px-6 py-3 rounded-xl font-bold hover:bg-white/30"
                     >
-                      Change Photo
+                      {tr('action.change_photo')}
                     </button>
                   </div>
                 </div>
@@ -123,15 +122,15 @@ export default function CropAnalysis() {
                   <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-6">
                     <UploadCloud className="w-10 h-10 text-primary" />
                   </div>
-                  <h3 className="text-xl font-bold mb-2">Upload Crop Image</h3>
-                  <p className="text-muted-foreground mb-8 text-sm px-8">Drag and drop or click to upload a clear photo of your plant's development area.</p>
+                  <h3 className="text-xl font-bold mb-2">{tr('analysis.upload_title')}</h3>
+                  <p className="text-muted-foreground mb-8 text-sm px-8">{tr('analysis.upload_desc')}</p>
                   
                   <div className="flex gap-4">
                     <button 
                       onClick={() => fileInputRef.current?.click()}
                       className="bg-foreground text-background px-6 py-3 rounded-xl font-semibold hover:bg-primary transition-colors"
                     >
-                      Browse Files
+                      {tr('action.browse_files')}
                     </button>
                     <button 
                       onClick={() => {
