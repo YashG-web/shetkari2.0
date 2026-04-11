@@ -238,7 +238,8 @@ router.get("/recommendation", async (_req, res) => {
 
   }
 
-  const irrigationAdvisory = currentSimulatedData.irrigationAdvisory || "Analyzing environmental conditions...";
+  irrigationAdvisory = currentSimulatedData.irrigationAdvisory || irrigationAdvisory;
+
 
   const data = {
     ...rec,
