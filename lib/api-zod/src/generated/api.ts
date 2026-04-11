@@ -151,7 +151,12 @@ export const GetRecommendationResponse = zod.object({
     usageInfo: zod.string(),
     buyLink: zod.string().describe("External purchase URL"),
     platform: zod.string().describe("Platform name e.g. Amazon"),
+    app_strategy: zod.string().optional().describe("Application strategy"),
+    app_desc: zod.string().optional().describe("Application description"),
   }),
+  irrigationAdvisory: zod.string().optional(),
+  app_strategy: zod.string().optional(),
+  app_desc: zod.string().optional(),
 });
 
 /**
@@ -173,7 +178,7 @@ export const AnalyzeGrowthStageResponse = zod.object({
  * @summary Get simulator configuration
  */
 export const GetSimulatorConfigResponse = zod.object({
-  enabled: zod.boolean().optional().describe("Whether the simulator is currently active"),
+  enabled: zod.boolean().optional(),
   models: zod.object({
     lstm: zod.boolean(),
     randomForest: zod.boolean(),

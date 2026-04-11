@@ -119,6 +119,10 @@ export interface FertilizerRecommendation {
   buyLink: string;
   /** Platform name e.g. Amazon */
   platform: string;
+  /** Application strategy */
+  app_strategy?: string;
+  /** Application description */
+  app_desc?: string;
 }
 
 export interface RecommendationData {
@@ -130,6 +134,9 @@ export interface RecommendationData {
   /** List of recommended actions */
   suggestedActions: string[];
   fertilizerRecommendation: FertilizerRecommendation;
+  irrigationAdvisory?: string;
+  app_strategy?: string;
+  app_desc?: string;
 }
 
 export type SimulatorConfigModels = {

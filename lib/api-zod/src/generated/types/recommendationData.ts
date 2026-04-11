@@ -17,4 +17,7 @@ export interface RecommendationData {
   /** List of recommended actions */
   suggestedActions: string[];
   fertilizerRecommendation: FertilizerRecommendation;
+  irrigationAdvisory?: string;
+  app_strategy?: string;
+  app_desc?: string;
 }

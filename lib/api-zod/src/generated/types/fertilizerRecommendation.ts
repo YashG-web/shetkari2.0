@@ -15,4 +15,8 @@ export interface FertilizerRecommendation {
   buyLink: string;
   /** Platform name e.g. Amazon */
   platform: string;
+  /** Application strategy */
+  app_strategy?: string;
+  /** Application description */
+  app_desc?: string;
 }

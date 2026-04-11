@@ -323,7 +323,13 @@ components:
           items: { type: string }
           description: "List of recommended actions"
         fertilizerRecommendation: { $ref: "#/components/schemas/FertilizerRecommendation" }
+        irrigationAdvisory: { type: string }
+        app_strategy: { type: string }
+        app_desc: { type: string }
+
+
       required: [cropCondition, identifiedIssue, riskLevel, suggestedActions, fertilizerRecommendation]
+
 
     FertilizerRecommendation:
       type: object
@@ -333,7 +339,10 @@ components:
         usageInfo: { type: string }
         buyLink: { type: string, description: "External purchase URL" }
         platform: { type: string, description: "Platform name e.g. Amazon" }
+        app_strategy: { type: string, description: "Application strategy" }
+        app_desc: { type: string, description: "Application description" }
       required: [name, npkRatio, usageInfo, buyLink, platform]
+
 
     SimulatorConfig:
       type: object
