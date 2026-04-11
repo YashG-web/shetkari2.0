@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const ML_SERVICE_URL = process.env.ML_SERVICE_URL || "http://localhost:8000";
-const ESP32_BASE_URL = process.env.ESP32_BASE_URL || "http://10.11.61.104/";
+const ESP32_BASE_URL = process.env.ESP32_BASE_URL || "http://10.154.16.104/";
 
 function map(x: number, in_min: number, in_max: number, out_min: number, out_max: number): number {
   return Number(((x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min).toFixed(2));
@@ -30,24 +30,41 @@ const ML_TRIGGER_THRESHOLD = 5.0; // Total NPK change sum
 // Last state tracking to optimize ML calls
 let lastMlNpk = { nitrogen: 0, phosphorus: 0, potassium: 0 };
 
+// Global live mode state
+let liveModeEnabled = false;
+let lastLiveData = {
+  soilMoisture: 50,
+  temperature: 25,
+  humidity: 60
+};
+
 export function getRuleBasedFertilizerRecommendation(data: {
-  soilMoisture: number;
   nitrogen: number;
   phosphorus: number;
   potassium: number;
-  temperature: number;
 }): string {
-  if (data.soilMoisture < 35) {
-    return "Liquid Humic Acid";
-  }
+  // Purely NPK based
   if (data.nitrogen < 40) return "Urea 46-0-0";
   if (data.phosphorus < 30) return "DAP 18-46-0";
   if (data.potassium < 40) return "Muriate of Potash";
+  if (data.nitrogen < 80) return "Ammonium Sulphate";
   
-  if (data.temperature > 38) {
-    return "Seaweed Extract";
-  }
   return "Coromandel Gromor 14-35-14";
+}
+
+export function getIrrigationAdvisory(data: {
+  soilMoisture: number;
+  temperature: number;
+  humidity: number;
+  rain: boolean;
+}): string {
+  if (data.rain) return "Rain detected. Natural irrigation sufficient. Keep pumps off.";
+  if (data.soilMoisture < 30) return "Critical: Soil is too dry. Immediate irrigation required.";
+  if (data.soilMoisture < 45 && data.temperature > 35) return "High evaporation alert. Supplemental irrigation recommended.";
+  if (data.humidity > 85) return "High humidity. Reduced transpiration. Water sparingly to avoid fungal risk.";
+  if (data.soilMoisture > 75) return "Soil is well-saturated. Irrigation not required.";
+  
+  return "Soil moisture is stable. No immediate irrigation needed.";
 }
 
 // Shared simulation state for all routes
@@ -93,6 +110,7 @@ export let currentSimulatedData: any = {
   tsForecastData: [] as { time: string, value: number }[],
   fertilizerRecommendation: "Coromandel Gromor 14-35-14",
   fertilizerSource: "Fallback" as FertilizerSource,
+  irrigationAdvisory: "Analyzing soil moisture...",
   growthStage: "Young Bud",
   growthConfidence: 94.2
 };
@@ -214,11 +232,16 @@ export function calculateStep(config: typeof simulatorConfig, current: any) {
 
   // Determine fallback recommendation for this physical step
   const fallbackFertilizerRecommendation = getRuleBasedFertilizerRecommendation({
-    soilMoisture: nextSoilMoisture,
     nitrogen: nextNitrogen,
     phosphorus: nextPhosphorus,
     potassium: nextPotassium,
+  });
+
+  const irrigationAdvisory = getIrrigationAdvisory({
+    soilMoisture: nextSoilMoisture,
     temperature: jitter(temperature, 1),
+    humidity: jitter(humidity, 2),
+    rain
   });
 
   return {
@@ -242,6 +265,7 @@ export function calculateStep(config: typeof simulatorConfig, current: any) {
     tsForecastData: [],
     fertilizerRecommendation: fallbackFertilizerRecommendation,
     fertilizerSource: "Fallback",
+    irrigationAdvisory,
     growthStage: current.growthStage || "Young Bud",
     growthConfidence: current.growthConfidence || 92.5
   };
@@ -270,6 +294,16 @@ export async function runMLInference(forceData?: any) {
   const data = forceData || (simulatorConfig.enabled 
     ? calculateStep(simulatorConfig, currentSimulatedData) 
     : currentSimulatedData);
+
+  // Apply Live Mode Override: 
+  // If we have live data and we are NOT forcing a specific point (from sync),
+  // override the environmental values but keep the simulated NPK.
+  if (liveModeEnabled && !forceData) {
+    data.soilMoisture = lastLiveData.soilMoisture;
+    data.temperature = lastLiveData.temperature;
+    data.humidity = lastLiveData.humidity;
+    console.log("📡 Live Mode Active: Overriding Env Sensors (Moisture/Temp/Hum) while preserving Simulated NPK");
+  }
 
   const mlData: any = { ...data };
   
@@ -358,12 +392,23 @@ export async function runMLInference(forceData?: any) {
     }
   }
 
-  // 5. Rule Engine Automation
-  if (data.rain) {
+  // 5. Rule Engine Automation (Irrigation Advisory)
+  mlData.irrigationAdvisory = getIrrigationAdvisory({
+    soilMoisture: controlMoisture,
+    temperature: data.temperature,
+    humidity: data.humidity,
+    rain: data.rain
+  });
+
+  if (controlMoisture < 35 && !data.rain) {
+    mlData.pumpStatus = "ON";
+    mlData.ruleEngineOutput = "Irrigation system active";
+  } else if (data.rain) {
+    mlData.pumpStatus = "OFF";
     mlData.ruleEngineOutput = "Rain detected: Irrigation skipped";
+  } else {
     mlData.pumpStatus = "OFF";
-  } else if (controlMoisture < 30) {
-    mlData.pumpStatus = "OFF";
+    mlData.ruleEngineOutput = "Soil moisture stable";
   }
 
   // 6. Growth Stage AI Simulation
@@ -414,6 +459,14 @@ export let iotStatus: { status: "online" | "offline" | "connecting", lastError?:
 export async function updateStateFromIoT(data: { soilRaw: number, temperature: number, humidity: number }) {
   const soilMoisturePercent = map(data.soilRaw, 0, 1023, 100, 0);
   
+  // Track live data for the simulation loop to use
+  liveModeEnabled = true;
+  lastLiveData = {
+    soilMoisture: soilMoisturePercent,
+    temperature: data.temperature,
+    humidity: data.humidity
+  };
+
   const newState = {
     ...currentSimulatedData,
     soilMoisture: soilMoisturePercent,
@@ -425,7 +478,7 @@ export async function updateStateFromIoT(data: { soilRaw: number, temperature: n
   currentSimulatedData = newState;
   iotStatus = { status: "online" };
   
-  // Trigger ML inference with the ACTUAL hardware data (no simulation physics)
+  // Trigger ML inference with the ACTUAL hardware data (no simulation physics for this specific point)
   try {
     await runMLInference(newState);
   } catch (err) {

@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "export PORT=5007 && export NODE_ENV=development && npm run build && npm run start",
+    "dev": "cross-env PORT=5007 NODE_ENV=development npm run build && cross-env PORT=5007 NODE_ENV=development npm run start",
     "build": "node ./build.mjs",
     "start": "node --enable-source-maps ./dist/index.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit"

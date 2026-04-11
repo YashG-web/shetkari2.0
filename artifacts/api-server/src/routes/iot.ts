@@ -4,7 +4,7 @@ import { iotStatus } from "../lib/shared-state";
 
 const router: IRouter = Router();
 
-const ESP32_BASE_URL = process.env.ESP32_BASE_URL || "http://10.11.61.104/";
+const ESP32_BASE_URL = process.env.ESP32_BASE_URL || "http://10.154.16.104/";
 
 function map(x: number, in_min: number, in_max: number, out_min: number, out_max: number): number {
   return Number(((x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min).toFixed(2));

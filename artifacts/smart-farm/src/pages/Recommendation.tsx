@@ -3,14 +3,27 @@ import { useTranslation } from '@/lib/translations';
 import { useAppStore } from '@/store/use-app-store';
 import { useTTS } from '@/hooks/use-tts';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { ShieldCheck, AlertTriangle, AlertOctagon, CheckCircle2, ShoppingCart, Volume2, SquareSquare } from 'lucide-react';
+import { 
+  ShieldCheck, 
+  AlertTriangle, 
+  AlertOctagon, 
+  CheckCircle2, 
+  ShoppingCart, 
+  Volume2, 
+  SquareSquare,
+  Droplets,
+  ThermometerSun,
+  Wind,
+  Activity
+} from 'lucide-react';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { motion } from 'framer-motion';
-
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 
 export default function Recommendation() {
-  const { language, isSimulatorOn } = useAppStore();
+  const { isSimulatorOn } = useAppStore();
   const tr = useTranslation();
   const { speak, isPlaying } = useTTS();
   
@@ -20,6 +33,19 @@ export default function Recommendation() {
       refetchInterval: 3000
     }
   });
+
+  const translateDynamic = (text: string) => {
+    if (!text) return text;
+    // Check for ML Forecast suffix
+    if (text.includes(" (ML Forecast: ")) {
+      const parts = text.split(" (ML Forecast: ");
+      const base = tr(parts[0].trim());
+      const suffixRaw = parts[1]; // e.g. "45% moisture in next step)"
+      const percent = suffixRaw.split("%")[0];
+      return `${base} (${tr("ML Forecast")}: ${percent}% ${tr("moisture in next step")})`;
+    }
+    return tr(text);
+  };
 
   // Ensure hardware is synced even from the Recommendation page
   useEffect(() => {
@@ -55,15 +81,14 @@ export default function Recommendation() {
 
   const handleSpeak = () => {
     if (!rec) return;
-    const text = `Crop Condition is ${rec.cropCondition}. The main issue identified is ${rec.identifiedIssue}. Here are the suggested actions: ${rec.suggestedActions.join(', ')}. Recommended fertilizer is ${rec.fertilizerRecommendation.name} with NPK ratio ${rec.fertilizerRecommendation.npkRatio}.`;
-    speak(text);
+    speak(tr(rec.irrigationAdvisory, language));
   };
 
   const riskStyles = {
     low: "bg-green-100 text-green-800 border-green-200",
     medium: "bg-yellow-100 text-yellow-800 border-yellow-200",
     high: "bg-red-100 text-red-800 border-red-200"
-  };
+  } as const;
 
   const RiskIcon = {
     low: ShieldCheck,
@@ -85,101 +110,144 @@ export default function Recommendation() {
 
   return (
     <AppLayout>
-      <div className="max-w-4xl mx-auto space-y-8">
+      <div className="max-w-4xl mx-auto space-y-10 pb-20">
         
         {/* Header Actions */}
-        <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-display font-bold text-foreground">
-            {tr('nav.recommendation', language)}
-          </h1>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div>
+            <h1 className="text-4xl font-display font-bold text-foreground">
+              {tr('nav.recommendation', language)}
+            </h1>
+            <p className="text-muted-foreground font-medium mt-1">{tr('rec.subtitle', language)}</p>
+          </div>
           <button
             onClick={handleSpeak}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold transition-all ${
-              isPlaying ? 'bg-primary text-white shadow-lg shadow-primary/30 animate-pulse' : 'bg-white border-2 border-border text-foreground hover:border-primary/50'
+            className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-bold transition-all shadow-lg ${
+              isPlaying 
+                ? 'bg-primary text-white shadow-primary/30 animate-pulse' 
+                : 'bg-white border-2 border-border text-foreground hover:border-primary/50'
             }`}
           >
             <Volume2 className="w-5 h-5" />
-            {tr('action.listen', language)}
+            {tr('action.listen')}
           </button>
         </div>
 
-        {/* Main Condition Card */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-card rounded-3xl p-8 border border-border/50 shadow-lg shadow-black/5"
-        >
-          <div className="flex flex-col md:flex-row gap-8 items-start">
-            <div className="flex-1 space-y-4">
-              <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-bold border ${riskStyles[rec.riskLevel]}`}>
-                <RiskIcon className="w-4 h-4" />
-                Risk Level: {rec.riskLevel.toUpperCase()}
-              </div>
-              
-              <h2 className="text-2xl font-bold text-foreground">
-                {rec.cropCondition}
-              </h2>
-              
-              <div className="bg-red-50 text-red-900 p-4 rounded-2xl border border-red-100">
-                <p className="font-semibold text-sm uppercase tracking-wider mb-1 opacity-70">Identified Issue</p>
-                <p className="text-lg">{rec.identifiedIssue}</p>
-              </div>
+        <div className="grid gap-10">
+          
+          {/* CARD 1: Environmental & Irrigation Recommendation */}
+          <motion.div 
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="group"
+          >
+            <div className="flex items-center gap-2 mb-4">
+               <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                  <Droplets className="w-5 h-5 text-blue-600" />
+               </div>
+               <h3 className="text-xl font-display font-bold">{tr('rec.env_analysis', language)}</h3>
             </div>
             
-            {/* Suggested Actions */}
-            <div className="flex-1 w-full bg-slate-50 rounded-2xl p-6 border border-slate-100">
-              <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-                <CheckCircle2 className="text-primary w-5 h-5" />
-                Suggested Actions
-              </h3>
-              <ul className="space-y-3">
-                {rec.suggestedActions.map((action, idx) => (
-                  <li key={idx} className="flex items-start gap-3 text-slate-700">
-                    <span className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
-                      {idx + 1}
-                    </span>
-                    <span className="font-medium leading-relaxed">{action}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </motion.div>
+            <Card className="rounded-[40px] overflow-hidden border-2 border-blue-100 dark:border-blue-900/30 shadow-2xl shadow-blue-500/5">
+              <div className="grid md:grid-cols-12">
+                <div className="md:col-span-5 bg-blue-50/50 dark:bg-blue-950/20 p-8 flex flex-col justify-center border-r border-blue-100 dark:border-blue-900/30">
+                  <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-black border mb-6 ${riskStyles[rec.riskLevel as keyof typeof riskStyles]}`}>
+                    <RiskIcon className="w-3.5 h-3.5" />
+                    {tr('rec.system_status', language)}{rec.riskLevel.toUpperCase()}
+                  </div>
+                  <h4 className="text-2xl font-bold leading-tight mb-4">{tr(rec.cropCondition, language)}</h4>
+                  <div className="flex items-center gap-4 text-muted-foreground">
+                     <div className="flex items-center gap-1.5 bg-white dark:bg-slate-900 px-3 py-1 rounded-lg border text-[10px] font-bold">
+                        <ThermometerSun className="w-3.5 h-3.5 text-orange-500" /> {tr('rec.temp_stable', language)}
+                     </div>
+                     <div className="flex items-center gap-1.5 bg-white dark:bg-slate-900 px-3 py-1 rounded-lg border text-[10px] font-bold">
+                        <Wind className="w-3.5 h-3.5 text-teal-500" /> {tr('rec.humid_optimal', language)}
+                     </div>
+                  </div>
+                </div>
+                
+                <div className="md:col-span-7 p-8 space-y-6">
+                  <div className="relative">
+                    <h5 className="text-xs font-black uppercase tracking-widest text-blue-600 mb-3">{tr('rec.irrigation_advisory', language)}</h5>
+                    <p className="text-xl font-medium text-foreground leading-relaxed italic">
+                      "{tr((rec as any).irrigationAdvisory || "Maintain current moisture levels for optimal growth.", language)}"
+                    </p>
+                  </div>
+                  
+                  <div className="pt-6 border-t border-blue-50">
+                    <h5 className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-4">{tr('rec.recommended_actions', language)}</h5>
+                    <ul className="grid sm:grid-cols-2 gap-3">
+                      {rec.suggestedActions.slice(0, 4).map((action, idx) => (
+                        <li key={idx} className="flex items-center gap-3 text-sm font-medium text-muted-foreground group/item">
+                          <CheckCircle2 className="w-4 h-4 text-blue-500 shrink-0" />
+                          {tr(action, language)}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </motion.div>
 
-        {/* Fertilizer Recommendation */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
-          <h3 className="text-xl font-display font-bold mb-4">Recommended Product</h3>
-          <div className="bg-gradient-to-br from-primary/10 to-transparent border border-primary/20 rounded-3xl p-6 flex flex-col sm:flex-row items-center gap-6">
-            <div className="w-24 h-24 bg-white rounded-2xl shadow-sm flex items-center justify-center shrink-0">
-               <SquareSquare className="w-10 h-10 text-primary/40" />
+          {/* CARD 2: Soil Nutrient & NPK Recommendation */}
+          <motion.div 
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.1 }}
+            className="group"
+          >
+            <div className="flex items-center gap-2 mb-4">
+               <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
+                  <Activity className="w-5 h-5 text-emerald-600" />
+               </div>
+               <h3 className="text-xl font-display font-bold">{tr('rec.soil_analysis', language)}</h3>
             </div>
             
-            <div className="flex-1 text-center sm:text-left">
-              <h4 className="text-2xl font-bold text-foreground">{rec.fertilizerRecommendation.name}</h4>
-              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 mt-2 mb-3">
-                <span className="bg-white border border-border px-3 py-1 rounded-full text-sm font-semibold text-muted-foreground">
-                  NPK: {rec.fertilizerRecommendation.npkRatio}
-                </span>
-              </div>
-              <p className="text-muted-foreground text-sm max-w-lg">{rec.fertilizerRecommendation.usageInfo}</p>
-            </div>
-            
-            <a 
-              href={rec.fertilizerRecommendation.buyLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="shrink-0 flex items-center gap-2 px-8 py-4 bg-primary text-white rounded-xl font-bold hover:shadow-xl hover:shadow-primary/30 hover:-translate-y-1 transition-all"
-            >
-              <ShoppingCart className="w-5 h-5" />
-              Buy on {rec.fertilizerRecommendation.platform}
-            </a>
-          </div>
-        </motion.div>
+            <Card className="rounded-[40px] overflow-hidden border-2 border-emerald-100 dark:border-emerald-900/30 shadow-2xl shadow-emerald-500/5">
+              <div className="p-8">
+                <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8 mb-8 pb-8 border-b border-emerald-50 dark:border-emerald-900/10">
+                  <div className="flex items-center gap-6">
+                    <div className="w-24 h-24 bg-white dark:bg-slate-900 rounded-3xl shadow-lg border border-emerald-50 flex items-center justify-center p-4">
+                       <SquareSquare className="w-full h-full text-emerald-500/30" />
+                    </div>
+                    <div>
+                      <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white border-none px-3 py-1 mb-2">{tr('rec.recommended_product', language)}</Badge>
+                      <h4 className="text-3xl font-bold text-foreground">{rec.fertilizerRecommendation.name}</h4>
+                      <p className="text-emerald-600 font-bold text-sm tracking-wide mt-1">{tr('rec.chemical_comp', language)}{rec.fertilizerRecommendation.npkRatio}</p>
+                    </div>
+                  </div>
+                  
+                  <a 
+                    href={rec.fertilizerRecommendation.buyLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 px-10 py-5 bg-slate-900 text-white rounded-[20px] font-black group transition-all hover:scale-105 active:scale-95 shadow-xl shadow-black/10"
+                  >
+                    <ShoppingCart className="w-5 h-5 group-hover:animate-bounce" />
+                    {tr('rec.buy_on', language)}{rec.fertilizerRecommendation.platform.toUpperCase()}
+                  </a>
+                </div>
 
+                <div className="grid md:grid-cols-2 gap-12">
+                   <div className="space-y-4">
+                      <h5 className="text-xs font-black uppercase tracking-widest text-muted-foreground">{tr('rec.why_product', language)}</h5>
+                      <p className="text-foreground font-medium leading-relaxed italic">
+                        "{tr(rec.fertilizerRecommendation.usageInfo, language)}"
+                      </p>
+                   </div>
+                   <div className="space-y-4">
+                      <h5 className="text-xs font-black uppercase tracking-widest text-muted-foreground">{tr('rec.app_strategy', language)}</h5>
+                      <div className="bg-emerald-50/50 dark:bg-emerald-900/10 p-5 rounded-3xl border border-emerald-100 text-sm font-medium text-emerald-900 dark:text-emerald-200">
+                         {tr('rec.app_desc', language)}
+                      </div>
+                   </div>
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+
+        </div>
       </div>
     </AppLayout>
   );

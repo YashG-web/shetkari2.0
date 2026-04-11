@@ -24,7 +24,6 @@ interface AnalyticsChartProps {
 }
 
 export function AnalyticsChart({ currentData }: AnalyticsChartProps) {
-  const { language } = useAppStore();
   const tr = useTranslation();
 
   // Combine mock week data with live forecast if available
@@ -38,9 +37,9 @@ export function AnalyticsChart({ currentData }: AnalyticsChartProps) {
 
   // NPK Data
   const npkData = [
-    { name: "Nitrogen (N)", value: currentData?.nitrogen || 0, fill: "#3b82f6" },
-    { name: "Phosphorus (P)", value: currentData?.phosphorus || 0, fill: "#eab308" },
-    { name: "Potassium (K)", value: currentData?.potassium || 0, fill: "#8b5cf6" },
+    { name: tr("live.nitrogen", language), value: currentData?.nitrogen || 0, fill: "#3b82f6" },
+    { name: tr("live.phosphorus", language), value: currentData?.phosphorus || 0, fill: "#eab308" },
+    { name: tr("live.potassium", language), value: currentData?.potassium || 0, fill: "#8b5cf6" },
   ];
 
   return (
@@ -48,7 +47,7 @@ export function AnalyticsChart({ currentData }: AnalyticsChartProps) {
       {/* Trend Area Chart (Moisture vs Temp) */}
       <div className="glass-card rounded-2xl p-6 shadow-sm border border-border/50 bg-card overflow-hidden">
         <h3 className="text-xl font-bold mb-6 text-foreground font-display flex items-center gap-2">
-          {currentData?.tsForecastData ? "7-Hour AI Forecast" : "7-Day Environment Trend"}
+          {currentData?.tsForecastData ? tr("7-Hour AI Forecast", language) : tr("7-Day Environment Trend", language)}
           {currentData?.tsForecastData && <span className="text-[10px] bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-full uppercase tracking-widest font-black">AI Active</span>}
         </h3>
         <div className="h-[300px] w-full">
@@ -73,12 +72,12 @@ export function AnalyticsChart({ currentData }: AnalyticsChartProps) {
               
               {currentData?.tsForecastData ? (
                 <>
-                  <Area type="monotone" dataKey="moisture" name="Predicted Trend" stroke="#8b5cf6" strokeWidth={3} strokeDasharray="5 5" fillOpacity={1} fill="url(#colorForecast)" />
+                  <Area type="monotone" dataKey="moisture" name={tr('status.predicted_trend')} stroke="#8b5cf6" strokeWidth={3} strokeDasharray="5 5" fillOpacity={1} fill="url(#colorForecast)" />
                 </>
               ) : (
                 <>
-                  <Area type="monotone" dataKey="moisture" name="Soil Moisture %" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorMoisture)" />
-                  <Area type="monotone" dataKey="temp" name="Temperature °C" stroke="#f97316" strokeWidth={3} fillOpacity={1} fill="rgba(249, 115, 22, 0.1)" />
+                  <Area type="monotone" dataKey="moisture" name={tr('sensor.soil_moisture')} stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorMoisture)" />
+                  <Area type="monotone" dataKey="temp" name={tr('sensor.temperature')} stroke="#f97316" strokeWidth={3} fillOpacity={1} fill="rgba(249, 115, 22, 0.1)" />
                 </>
               )}
               <Legend verticalAlign="top" height={36} iconType="circle" />
@@ -89,7 +88,7 @@ export function AnalyticsChart({ currentData }: AnalyticsChartProps) {
 
       {/* NPK Bar Chart */}
       <div className="glass-card rounded-2xl p-6 shadow-sm border border-border/50 bg-card">
-        <h3 className="text-xl font-bold mb-6 text-foreground font-display">Current Soil NPK Levels</h3>
+        <h3 className="text-xl font-bold mb-6 text-foreground font-display">{tr("Current Soil NPK Levels", language)}</h3>
         <div className="h-[300px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={npkData} margin={{ top: 10, right: 30, left: -10, bottom: 10 }} layout="vertical">

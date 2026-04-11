@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'wouter';
 import { useAppStore, Language } from '@/store/use-app-store';
-import { Leaf, Menu, X, Globe, Activity } from 'lucide-react';
+import { Menu, X, Globe, Activity } from 'lucide-react';
 import { useTranslation } from '@/lib/translations';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -52,6 +52,7 @@ export function Navbar() {
     { path: '/fertilizer', label: tr('nav.fertilizers', language) },
     { path: '/crop-analysis', label: tr('nav.crop_analysis', language) },
     { path: '/simulator', label: tr('nav.simulator', language) },
+    { path: '/support', label: tr('nav.support', language) },
   ];
 
   const toggleLang = () => {
@@ -66,8 +67,8 @@ export function Navbar() {
           
           {/* Logo */}
           <div className="flex-shrink-0 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-primary to-emerald-400 flex items-center justify-center shadow-lg shadow-primary/30">
-              <Leaf className="w-6 h-6 text-white" />
+            <div className="w-14 h-14 flex items-center justify-center">
+              <img src="/images/Traditional farmer with wheat and sickle.png" alt="Shetkari Logo" className="w-full h-full object-contain" />
             </div>
             <span className="font-display font-bold text-2xl tracking-tight text-foreground">
               SHET<span className="text-primary">KARI</span>
@@ -100,7 +101,7 @@ export function Navbar() {
               }`}
             >
               <Activity className={`w-4 h-4 ${!isSimulatorOn ? 'animate-pulse' : ''}`} />
-              {isSimulatorOn ? "SIMULATOR: ON" : "LIVE MODE: ACTIVE"}
+              {isSimulatorOn ? tr('nav.sim_on') : tr('nav.live_mode')}
             </button>
 
             <button 
