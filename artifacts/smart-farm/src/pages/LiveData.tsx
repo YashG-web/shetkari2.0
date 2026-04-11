@@ -5,7 +5,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { MetricCard } from '@/components/MetricCard';
 import { Link } from 'wouter';
 import { format } from 'date-fns';
-import { Droplets, ThermometerSun, Wind, Activity, RefreshCw, BarChart2, Zap, Wifi, WifiOff } from 'lucide-react';
+import { Droplets, ThermometerSun, Wind, Activity, RefreshCw, BarChart2, Zap, Wifi, WifiOff, CloudRain } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
@@ -19,7 +19,6 @@ export default function LiveData() {
   const { data: simData, isLoading: isLoadingSim, refetch: refetchSim, isRefetching: isRefSim } = useGetSensorData({
     query: { 
       queryKey: getGetSensorDataQueryKey(),
-      enabled: isSimulatorOn,
       refetchInterval: 3000 
     }
   });
@@ -108,10 +107,17 @@ export default function LiveData() {
     return () => clearInterval(interval);
   }, [isSimulatorOn]);
 
-  const sensorData = isSimulatorOn ? simData : iotData;
-  const isLoading = isSimulatorOn ? isLoadingSim : isIotLoading && !iotData;
+  // MERGE LOGIC: Merge all background simulator fields (NPK) with live environment sensors
+  const sensorData = isSimulatorOn ? simData : {
+    ...simData,
+    ...iotData
+  };
+  
+  const isLoading = isSimulatorOn ? isLoadingSim : (isIotLoading && !iotData);
   const isRefreshing = isSimulatorOn ? isRefSim : isIotLoading;
-  const refetch = isSimulatorOn ? refetchSim : () => {};
+  const refetch = () => {
+    refetchSim();
+  };
   const isOffline = !isSimulatorOn && !!iotError;
 
   return (
@@ -130,7 +136,7 @@ export default function LiveData() {
                   <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isOffline ? 'bg-red-500' : 'bg-primary'}`}></span>
                   <span className={`relative inline-flex rounded-full h-3 w-3 ${isOffline ? 'bg-red-500' : 'bg-primary'}`}></span>
                 </span>
-                {isOffline ? "ESP32 Offline" : (isSimulatorOn ? "Simulator Active" : "IoT Sensor Online")}
+                {isOffline ? tr('live.esp_offline', language) : (isSimulatorOn ? tr('live.sim_active', language) : tr('live.sensor_online', language))}
               </span>
               <span>•</span>
               <span>
@@ -142,10 +148,10 @@ export default function LiveData() {
           <div className="flex items-center gap-4">
             <div className={`p-2 rounded-lg ${isOffline ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600'} hidden md:flex items-center gap-2 text-xs font-bold ring-1 ring-inset`}>
               {isOffline ? <WifiOff className="w-4 h-4" /> : <Wifi className="w-4 h-4" />}
-              {isOffline ? 'DISCONNECTED' : 'STABLE SIGNAL'}
+              {isOffline ? tr('live.disconnected', language) : tr('live.stable_signal', language)}
             </div>
             <button 
-              onClick={() => isSimulatorOn ? refetch() : null}
+              onClick={() => refetch()}
               disabled={isRefreshing}
               className="p-3 rounded-xl bg-muted text-foreground hover:bg-accent hover:text-primary transition-colors disabled:opacity-50"
             >
@@ -160,14 +166,14 @@ export default function LiveData() {
           </div>
         </div>
 
-        {/* Two Column Layout for Categories */}
+        {/* Categories Grid */}
         <div className="grid lg:grid-cols-2 gap-8">
           
           {/* Environment */}
           <div className="space-y-4">
             <h2 className="text-xl font-display font-bold text-foreground flex items-center gap-2">
               <ThermometerSun className="text-orange-500 w-6 h-6" />
-              Environment Metrics
+              {tr('live.env_metrics', language)}
             </h2>
             <div className="grid sm:grid-cols-2 gap-4">
               <MetricCard
@@ -198,25 +204,25 @@ export default function LiveData() {
           <div className="space-y-4">
             <h2 className="text-xl font-display font-bold text-foreground flex items-center gap-2">
               <Activity className="text-primary w-6 h-6" />
-              Soil Nutrients (NPK)
+              {tr('live.soil_nutrients', language)}
             </h2>
             <div className="grid sm:grid-cols-2 gap-4">
               <MetricCard
-                title="Nitrogen (N)"
+                title={tr('live.nitrogen', language)}
                 value={isLoading ? '-' : sensorData?.nitrogen ?? '-'}
                 unit="ppm"
                 icon={BarChart2}
                 colorClass="text-purple-500"
               />
               <MetricCard
-                title="Phosphorus (P)"
+                title={tr('live.phosphorus', language)}
                 value={isLoading ? '-' : sensorData?.phosphorus ?? '-'}
                 unit="ppm"
                 icon={BarChart2}
                 colorClass="text-pink-500"
               />
               <MetricCard
-                title="Potassium (K)"
+                title={tr('live.potassium', language)}
                 value={isLoading ? '-' : sensorData?.potassium ?? '-'}
                 unit="ppm"
                 icon={BarChart2}
@@ -224,7 +230,29 @@ export default function LiveData() {
               />
             </div>
           </div>
+        </div>
 
+        {/* Dual Analysis Cards */}
+        <div className="grid lg:grid-cols-2 gap-8">
+          <div className="space-y-4">
+            <h2 className="text-xl font-display font-bold text-foreground flex items-center gap-2">
+              <CloudRain className="text-blue-500 w-6 h-6" />
+              {tr('rec.irrigation_advisory', language)}
+            </h2>
+            <div className="bg-card p-6 rounded-3xl border border-blue-100 shadow-sm min-h-[120px] flex items-center justify-center text-center italic text-foreground text-sm font-medium">
+              {isLoading ? '...' : tr(sensorData?.irrigationAdvisory || tr('live.analyzing_env', language), language)}
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <h2 className="text-xl font-display font-bold text-foreground flex items-center gap-2">
+              <Activity className="text-emerald-500 w-6 h-6" />
+              {tr('live.fert_rec', language)}
+            </h2>
+            <div className="bg-card p-6 rounded-3xl border border-emerald-100 shadow-sm min-h-[120px] flex items-center justify-center text-center font-bold text-foreground">
+              {isLoading ? '...' : tr(sensorData?.fertilizerRecommendation || tr('live.analyzing_nutrients', language), language)}
+            </div>
+          </div>
         </div>
       </div>
     </AppLayout>

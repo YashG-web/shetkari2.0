@@ -52,6 +52,7 @@ export function Navbar() {
     { path: '/fertilizer', label: tr('nav.fertilizers', language) },
     { path: '/crop-analysis', label: tr('nav.crop_analysis', language) },
     { path: '/simulator', label: tr('nav.simulator', language) },
+    { path: '/support', label: tr('nav.support', language) },
   ];
 
   const toggleLang = () => {

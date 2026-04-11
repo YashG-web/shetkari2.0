@@ -76,7 +76,7 @@ export default function Fertilizers() {
                 </div>
                 
                 <p className="text-muted-foreground text-sm mt-2 flex-1">
-                  {item.usageInfo}
+                  {tr(item.usageInfo, language)}
                 </p>
                 
                 <div className="mt-6 pt-6 border-t flex items-center justify-between">

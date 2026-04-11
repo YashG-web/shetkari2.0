@@ -10,6 +10,7 @@ import Recommendation from "@/pages/Recommendation";
 import Fertilizers from "@/pages/Fertilizers";
 import CropAnalysis from "@/pages/CropAnalysis";
 import Simulator from "@/pages/Simulator";
+import Support from "@/pages/Support";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -30,6 +31,7 @@ function Router() {
       <Route path="/fertilizer" component={Fertilizers} />
       <Route path="/crop-analysis" component={CropAnalysis} />
       <Route path="/simulator" component={Simulator} />
+      <Route path="/support" component={Support} />
       <Route component={NotFound} />
     </Switch>
   );
