@@ -86,7 +86,8 @@ export default function LiveData() {
           console.log("✅ [IOT DEBUG] LiveData Processed:", processed);
           setIotData(processed);
 
-          // Sync to backend
+          // Sync to backend (Skipped in Standalone Frontend Mode)
+          /* 
           if (!isNaN(soilRaw)) {
             axios.post('/api/iot/sync', {
               soilRaw,
@@ -94,6 +95,7 @@ export default function LiveData() {
               humidity: processed.humidity
             }).catch(err => console.error("Sync to backend failed", err));
           }
+          */
         } catch (err: any) {
           setIotError(err.message);
         } finally {
@@ -107,8 +109,20 @@ export default function LiveData() {
   }, [isSimulatorOn]);
 
   // MERGE LOGIC: Merge all background simulator fields (NPK) with live environment sensors
-  const sensorData = isSimulatorOn ? simData : {
-    ...simData,
+  // STANDALONE FALLBACK: If simData is missing (no backend), use local mocks
+  const mockSensorData = {
+    soilMoisture: 45,
+    temperature: 24,
+    humidity: 60,
+    nitrogen: 40,
+    phosphorus: 35,
+    potassium: 42,
+    fertilizerRecommendation: 'status.optimum',
+    timestamp: new Date().toISOString()
+  };
+
+  const sensorData = isSimulatorOn ? (simData || mockSensorData) : {
+    ...(simData || mockSensorData),
     ...iotData
   };
   

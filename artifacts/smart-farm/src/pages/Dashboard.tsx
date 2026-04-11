@@ -104,7 +104,8 @@ export default function Dashboard() {
           console.log("✅ [IOT DEBUG] Dashboard Processed Data:", processed);
           setHardwareData(processed);
 
-          // Sync to backend
+          // Sync to backend (Skipped in Standalone Frontend Mode)
+          /* 
           if (!isNaN(soilRaw)) {
             axios.post('/api/iot/sync', {
               soilRaw,
@@ -112,6 +113,7 @@ export default function Dashboard() {
               humidity
             }).catch(err => console.error("Sync to backend failed", err));
           }
+          */
 
         } catch (err) {
           console.error("Hardware network fetch failed", err);
@@ -126,10 +128,26 @@ export default function Dashboard() {
   }, [isSimulatorOn]);
 
   // MERGE LOGIC: Prioritize Live Hardware for environment, but keep Simulator for NPK & AI
-  const activeSensorData = isSimulatorOn ? sensorData : {
-    ...sensorData,    // Start with all simulated fields (NPK, AI Insights, etc.)
-    ...hardwareData,  // Override with Live Sensors (Moisture, Temp, Hum)
+  // STANDALONE FALLBACK: If sensorData is missing (no backend), use local mocks
+  const mockSensorData = {
+    soilMoisture: 45,
+    temperature: 24,
+    humidity: 60,
+    pumpStatus: 'OFF',
+    nitrogen: 40,
+    phosphorus: 35,
+    potassium: 42,
+    fertilizerRecommendation: 'status.optimum',
+    fertilizerSource: 'status.source_simulated',
+    dtInsights: ['insight.moisture_stable', 'insight.nutrients_balanced']
   };
+
+  const activeSensorData = isSimulatorOn 
+    ? (sensorData || mockSensorData) 
+    : {
+        ...(sensorData || mockSensorData), // Start with all simulated fields
+        ...hardwareData,                 // Override with Live Sensors
+      };
 
   const isGlobalLoading = isSimulatorOn ? isLoadingSensor : (!hardwareData && !isHardwareOffline);
   const isOffline = !isSimulatorOn && isHardwareOffline;

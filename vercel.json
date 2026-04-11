@@ -2,18 +2,8 @@
   "version": 2,
   "rewrites": [
     {
-      "source": "/api/(.*)",
-      "destination": "/api/index.ts"
-    },
-    {
       "source": "/(.*)",
-      "destination": "/artifacts/smart-farm/$1"
+      "destination": "/artifacts/smart-farm/dist/public/$1"
     }
-  ],
-  "functions": {
-    "api/index.ts": {
-      "runtime": "vercel-node@latest",
-      "includeFiles": "artifacts/api-server/**"
-    }
-  }
+  ]
 }

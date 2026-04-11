@@ -6,4 +6,5 @@ joblib
 scikit-learn
 tensorflow-cpu
 python-multipart
-axios
+gunicorn
+uvicorn

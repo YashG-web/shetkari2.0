@@ -66,12 +66,14 @@ export default function Recommendation() {
           const soilRaw = match ? Number(match[1]) : (raw.soil ? Number(raw.soil) : NaN);
           
           if (!isNaN(soilRaw)) {
+            /* Backend sync skipped in Standalone Mode
             await axios.post('/api/iot/sync', {
               soilRaw,
               temperature: parseFloat(raw.temp || raw.temperature || 0),
               humidity: parseFloat(raw.hum || raw.humidity || 0)
             });
-            refetch(); // Trigger UI update after sync
+            */
+            // refetch(); // No need to refetch in standalone
           }
         } catch (err) {
           console.error("Recommendation page sync failed", err);
@@ -85,8 +87,8 @@ export default function Recommendation() {
   }, [isSimulatorOn, refetch]);
 
   const handleSpeak = () => {
-    if (!rec) return;
-    const text = `${tr(rec.cropCondition, language)}. ${tr('rec.suggested_actions', language)}: ${tr(rec.suggestedActions[0], language)}`;
+    if (!activeRec) return;
+    const text = `${tr(activeRec.cropCondition, language)}. ${tr('rec.suggested_actions', language)}: ${tr(activeRec.suggestedActions[0], language)}`;
     speak(text);
   };
 
@@ -100,7 +102,7 @@ export default function Recommendation() {
     low: ShieldCheck,
     medium: AlertTriangle,
     high: AlertOctagon
-  }[rec?.riskLevel || 'low'];
+  }[activeRec?.riskLevel || 'low'];
 
   if (isLoading) {
     return (
@@ -112,7 +114,28 @@ export default function Recommendation() {
     );
   }
 
-  if (!rec) return null;
+  const mockRec = {
+    cropCondition: "status.optimum",
+    riskLevel: "low",
+    identifiedIssue: "Soil moisture is stable. No immediate irrigation needed.",
+    suggestedActions: [
+      "status.monitor_moisture",
+      "status.maintain_current_schedule"
+    ],
+    fertilizerRecommendation: {
+      name: "Organic Compost",
+      npkRatio: "1-1-1",
+      buyLink: "https://www.google.com/search?q=buy+organic+compost",
+      platform: "amazon",
+      usageInfo: "Apply 2kg per square meter for optimal soil health."
+    },
+    app_strategy: "rec.app_strategy",
+    app_desc: "Apply evenly across the field during general maintenance."
+  };
+
+  const activeRec = rec || mockRec;
+
+  if (!activeRec) return null;
 
   return (
     <AppLayout>
@@ -139,6 +162,10 @@ export default function Recommendation() {
           </button>
         </div>
 
+            {tr('action.listen', language)}
+          </button>
+        </div>
+
         <div className="grid gap-10">
           
           {/* CARD 1: Environmental & Irrigation Recommendation */}
@@ -157,12 +184,12 @@ export default function Recommendation() {
             <Card className="rounded-[40px] overflow-hidden border-2 border-blue-100 dark:border-blue-900/30 shadow-2xl shadow-blue-500/5">
               <div className="grid md:grid-cols-12">
                 <div className="md:col-span-5 bg-blue-50/50 dark:bg-blue-950/20 p-8 flex flex-col justify-center border-r border-blue-100 dark:border-blue-900/30">
-                  <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-black border mb-6 ${riskStyles[rec.riskLevel as keyof typeof riskStyles]}`}>
+                  <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-black border mb-6 ${riskStyles[activeRec.riskLevel as keyof typeof riskStyles]}`}>
                     <RiskIcon className="w-3.5 h-3.5" />
-                    {tr('rec.system_status', language)}{tr(`rec.${rec.riskLevel}`, language)}
+                    {tr('rec.system_status', language)}{tr(`rec.${activeRec.riskLevel}`, language)}
 
                   </div>
-                  <h4 className="text-2xl font-bold leading-tight mb-4">{tr(rec.cropCondition, language)}</h4>
+                  <h4 className="text-2xl font-bold leading-tight mb-4">{tr(activeRec.cropCondition, language)}</h4>
                   <div className="flex items-center gap-4 text-muted-foreground">
                      <div className="flex items-center gap-1.5 bg-white dark:bg-slate-900 px-3 py-1 rounded-lg border text-[10px] font-bold">
                         <ThermometerSun className="w-3.5 h-3.5 text-orange-500" /> {tr('rec.temp_stable', language)}
@@ -177,14 +204,14 @@ export default function Recommendation() {
                   <div className="relative">
                     <h5 className="text-xs font-black uppercase tracking-widest text-blue-600 mb-3">{tr('rec.identified_issue', language)}</h5>
                     <p className="text-xl font-medium text-foreground leading-relaxed italic">
-                      "{translateDynamic(rec.identifiedIssue)}"
+                      "{translateDynamic(activeRec.identifiedIssue)}"
                     </p>
                   </div>
                   
                   <div className="pt-6 border-t border-blue-50">
                     <h5 className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-4">{tr('rec.recommended_actions', language)}</h5>
                     <ul className="grid sm:grid-cols-2 gap-3">
-                      {rec.suggestedActions.slice(0, 4).map((action, idx) => (
+                      {activeRec.suggestedActions.slice(0, 4).map((action, idx) => (
                         <li key={idx} className="flex items-center gap-3 text-sm font-medium text-muted-foreground group/item">
                           <CheckCircle2 className="w-4 h-4 text-blue-500 shrink-0" />
                           {tr(action, language)}
@@ -220,19 +247,19 @@ export default function Recommendation() {
                     </div>
                     <div>
                       <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white border-none px-3 py-1 mb-2">{tr('rec.recommended_product', language)}</Badge>
-                      <h4 className="text-3xl font-bold text-foreground">{rec.fertilizerRecommendation.name}</h4>
-                      <p className="text-emerald-600 font-bold text-sm tracking-wide mt-1">{tr('rec.chemical_comp', language)}{rec.fertilizerRecommendation.npkRatio}</p>
+                      <h4 className="text-3xl font-bold text-foreground">{activeRec.fertilizerRecommendation.name}</h4>
+                      <p className="text-emerald-600 font-bold text-sm tracking-wide mt-1">{tr('rec.chemical_comp', language)}{activeRec.fertilizerRecommendation.npkRatio}</p>
                     </div>
                   </div>
                   
                   <a 
-                    href={rec.fertilizerRecommendation.buyLink}
+                    href={activeRec.fertilizerRecommendation.buyLink}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-3 px-10 py-5 bg-slate-900 text-white rounded-[20px] font-black group transition-all hover:scale-105 active:scale-95 shadow-xl shadow-black/10"
                   >
                     <ShoppingCart className="w-5 h-5 group-hover:animate-bounce" />
-                    {tr('rec.buy_on', language)} {rec.fertilizerRecommendation.platform.toUpperCase()}
+                    {tr('rec.buy_on', language)} {activeRec.fertilizerRecommendation.platform.toUpperCase()}
 
                   </a>
                 </div>
@@ -241,13 +268,13 @@ export default function Recommendation() {
                    <div className="space-y-4">
                       <h5 className="text-xs font-black uppercase tracking-widest text-muted-foreground">{tr('rec.why_product', language)}</h5>
                       <p className="text-foreground font-medium leading-relaxed italic">
-                        "{tr(rec.fertilizerRecommendation.usageInfo, language)}"
+                        "{tr(activeRec.fertilizerRecommendation.usageInfo, language)}"
                       </p>
                    </div>
                    <div className="space-y-4">
-                    <h5 className="text-xs font-black uppercase tracking-widest text-muted-foreground">{tr(rec.app_strategy || "rec.app_strategy", language)}</h5>
+                    <h5 className="text-xs font-black uppercase tracking-widest text-muted-foreground">{tr(activeRec.app_strategy || "rec.app_strategy", language)}</h5>
                     <div className="bg-emerald-50/50 dark:bg-emerald-900/10 p-5 rounded-3xl border border-emerald-100 text-sm font-medium text-emerald-900 dark:text-emerald-200">
-                       {tr(rec.app_desc || "Not Available", language)}
+                       {tr(activeRec.app_desc || "Not Available", language)}
                     </div>
 
 
