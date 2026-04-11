@@ -13,7 +13,7 @@ import axios from 'axios';
 export default function LiveData() {
   const tr = useTranslation();
   
-  const { isSimulatorOn } = useAppStore();
+  const { isSimulatorOn, language } = useAppStore();
   
   const { data: simData, isLoading: isLoadingSim, refetch: refetchSim, isRefetching: isRefSim } = useGetSensorData({
     query: { 
@@ -32,7 +32,7 @@ export default function LiveData() {
       const fetchIot = async () => {
         try {
           setIsIotLoading(true);
-          const res = await axios.get('http://10.154.16.104/', { timeout: 3000 });
+          const res = await axios.get('http://10.154.16.92/', { timeout: 3000 });
           setIotError(null);
           
           let raw = res.data;
@@ -160,7 +160,7 @@ export default function LiveData() {
               href="/recommendation"
               className="px-6 py-3 rounded-xl bg-primary text-primary-foreground font-semibold hover:shadow-lg hover:shadow-primary/25 hover:-translate-y-0.5 transition-all"
             >
-              {tr('action.analyze')}
+              {tr('action.analyze', language)}
             </Link>
           </div>
         </div>
@@ -176,23 +176,23 @@ export default function LiveData() {
             </h2>
             <div className="grid sm:grid-cols-2 gap-4">
               <MetricCard
-                title={tr('sensor.soil_moisture')}
-                value={isLoading ? '-' : sensorData?.soilMoisture ?? '-'}
-                unit="%"
+                title={tr('sensor.soil_moisture', language)}
+                value={isLoading || isOffline ? '-' : sensorData?.soilMoisture ?? '-'}
+                unit={isOffline ? "" : "%"}
                 icon={Droplets}
                 colorClass="text-blue-500"
               />
               <MetricCard
-                title={tr('sensor.temperature')}
-                value={isLoading ? '-' : sensorData?.temperature ?? '-'}
-                unit="°C"
+                title={tr('sensor.temperature', language)}
+                value={isLoading || isOffline ? '-' : sensorData?.temperature ?? '-'}
+                unit={isOffline ? "" : "°C"}
                 icon={ThermometerSun}
                 colorClass="text-orange-500"
               />
               <MetricCard
-                title={tr('sensor.humidity')}
-                value={isLoading ? '-' : sensorData?.humidity ?? '-'}
-                unit="%"
+                title={tr('sensor.humidity', language)}
+                value={isLoading || isOffline ? '-' : sensorData?.humidity ?? '-'}
+                unit={isOffline ? "" : "%"}
                 icon={Wind}
                 colorClass="text-teal-500"
               />

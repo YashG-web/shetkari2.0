@@ -17,6 +17,7 @@ type AnalysisResult = {
 
 export default function CropAnalysis() {
   const tr = useTranslation();
+  const { language } = useAppStore();
   const { toast } = useToast();
   const { speak, isPlaying } = useTTS();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -87,9 +88,9 @@ export default function CropAnalysis() {
       <div className="max-w-4xl mx-auto space-y-8">
         <div>
           <h1 className="text-3xl font-display font-bold text-foreground">
-            {tr('nav.crop_analysis')}
+            {tr('nav.crop_analysis', language)}
           </h1>
-          <p className="text-muted-foreground mt-2">{tr('analysis.subtitle')}</p>
+          <p className="text-muted-foreground mt-2">{tr('analysis.subtitle', language)}</p>
         </div>
 
         <div className="grid md:grid-cols-2 gap-8">
@@ -113,7 +114,7 @@ export default function CropAnalysis() {
                       onClick={() => fileInputRef.current?.click()}
                       className="bg-white/20 backdrop-blur-md text-white px-6 py-3 rounded-xl font-bold hover:bg-white/30"
                     >
-                      {tr('action.change_photo')}
+                      {tr('action.change_photo', language)}
                     </button>
                   </div>
                 </div>
@@ -122,15 +123,15 @@ export default function CropAnalysis() {
                   <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-6">
                     <UploadCloud className="w-10 h-10 text-primary" />
                   </div>
-                  <h3 className="text-xl font-bold mb-2">{tr('analysis.upload_title')}</h3>
-                  <p className="text-muted-foreground mb-8 text-sm px-8">{tr('analysis.upload_desc')}</p>
+                  <h3 className="text-xl font-bold mb-2">{tr('analysis.upload_title', language)}</h3>
+                  <p className="text-muted-foreground mb-8 text-sm px-8">{tr('analysis.upload_desc', language)}</p>
                   
                   <div className="flex gap-4">
                     <button 
                       onClick={() => fileInputRef.current?.click()}
                       className="bg-foreground text-background px-6 py-3 rounded-xl font-semibold hover:bg-primary transition-colors"
                     >
-                      {tr('action.browse_files')}
+                      {tr('action.browse_files', language)}
                     </button>
                     <button 
                       onClick={() => {
