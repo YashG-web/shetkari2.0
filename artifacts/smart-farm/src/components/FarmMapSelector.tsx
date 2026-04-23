@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, ImageOverlay, useMap, Rectangle, Popup, Marker
 import L from "leaflet";
 import * as turf from '@turf/turf';
 import { Search, Map as MapIcon, Crosshair, Zap, Droplets, FlaskConical, Target, RefreshCw, Square, Hexagon, Trash2, MousePointer2 } from "lucide-react";
+import { useTranslation } from "@/lib/translations";
 
 // --- Leaflet Fix for Icons ---
 // @ts-ignore
@@ -63,6 +64,7 @@ const FarmMapSelector: React.FC<FarmMapSelectorProps> = ({
   confidence,
   polygon: externalPolygon
 }) => {
+  const tr = useTranslation();
   const [center, setCenter] = useState<[number, number]>(initialCenter || [20.0485, 74.1200]); // Sinnar Farm Zone
   const [bbox, setBbox] = useState<number[]>([]);
   const [parcelBoundary, setParcelBoundary] = useState<any>(null);
@@ -197,14 +199,14 @@ const FarmMapSelector: React.FC<FarmMapSelectorProps> = ({
   };
 
   return (
-    <div className="flex flex-col gap-4 w-full h-full min-h-[550px]">
+    <div className="flex flex-col gap-4 w-full">
       <div className="flex gap-2">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
           <input 
             type="text" 
-            placeholder="Search regional farmland (Punjab, Nashik, etc)..." 
-            className="w-full pl-10 pr-4 py-3 bg-slate-900/40 backdrop-blur border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium text-white placeholder:text-slate-500"
+            placeholder={tr('pf.search_placeholder')} 
+            className="w-full pl-10 pr-4 py-3 bg-white/80 backdrop-blur border border-primary/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary font-medium text-slate-900 placeholder:text-slate-500 shadow-sm"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -213,18 +215,18 @@ const FarmMapSelector: React.FC<FarmMapSelectorProps> = ({
         <button 
           onClick={handleSearch}
           disabled={isSearching}
-          className="px-6 py-3 bg-emerald-600 text-white font-black rounded-2xl hover:bg-emerald-500 transition-all flex items-center gap-2 shadow-lg shadow-emerald-500/20 disabled:opacity-50"
+          className="px-6 py-3 bg-primary text-white font-bold rounded-2xl hover:bg-primary/90 transition-all flex items-center gap-2 shadow-lg shadow-primary/20 disabled:opacity-50"
         >
           {isSearching ? <RefreshCw className="w-4 h-4 animate-spin text-white" /> : <Crosshair className="w-4 h-4" />}
-          ANALYSIS
+          {tr('pf.analysis')}
         </button>
       </div>
 
-      <div className="flex-1 rounded-[32px] overflow-hidden border-2 border-white/5 shadow-2xl relative z-0 min-h-[500px] bg-slate-950">
+      <div className="rounded-[32px] overflow-hidden border-2 border-primary/5 shadow-xl relative z-0 h-[500px] bg-slate-50 w-full">
         <MapContainer 
           center={center} 
           zoom={18} 
-          style={{ height: "500px", width: "100%" }} 
+          style={{ height: "100%", width: "100%" }} 
           zoomControl={false}
           scrollWheelZoom={false}
         >
@@ -276,17 +278,17 @@ const FarmMapSelector: React.FC<FarmMapSelectorProps> = ({
 
           {/* Selection Toolbar */}
           <div className="absolute top-4 right-4 z-[1000] flex flex-col gap-2">
-             <div className="bg-slate-900/90 backdrop-blur-xl border border-white/10 rounded-2xl p-2 flex flex-col gap-2 shadow-2xl">
+             <div className="bg-white/90 backdrop-blur-xl border border-primary/10 rounded-2xl p-2 flex flex-col gap-2 shadow-xl">
                 <button 
                   onClick={() => setSelectionMode(selectionMode === 'rectangle' ? 'idle' : 'rectangle')}
-                  className={`p-3 rounded-xl transition-all ${selectionMode === 'rectangle' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/40' : 'text-slate-400 hover:bg-white/5'}`}
+                  className={`p-3 rounded-xl transition-all ${selectionMode === 'rectangle' ? 'bg-primary text-white shadow-lg shadow-primary/40' : 'text-slate-500 hover:bg-slate-100'}`}
                   title="Rectangle Select"
                 >
                    <Square className="w-5 h-5" />
                 </button>
                 <button 
                   onClick={() => setSelectionMode(selectionMode === 'polygon' ? 'idle' : 'polygon')}
-                  className={`p-3 rounded-xl transition-all ${selectionMode === 'polygon' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/40' : 'text-slate-400 hover:bg-white/5'}`}
+                  className={`p-3 rounded-xl transition-all ${selectionMode === 'polygon' ? 'bg-primary text-white shadow-lg shadow-primary/40' : 'text-slate-500 hover:bg-slate-100'}`}
                   title="Polygon Select"
                 >
                    <Hexagon className="w-5 h-5" />
@@ -299,7 +301,7 @@ const FarmMapSelector: React.FC<FarmMapSelectorProps> = ({
                     setSelectionMode('idle');
                     setTempPolygon([]);
                   }}
-                  className="p-3 rounded-xl text-red-400 hover:bg-red-500/10 transition-all"
+                  className="p-3 rounded-xl text-red-500 hover:bg-red-50 transition-all"
                   title="Clear Selection"
                 >
                    <Trash2 className="w-5 h-5" />
@@ -314,19 +316,19 @@ const FarmMapSelector: React.FC<FarmMapSelectorProps> = ({
           </div>
 
           <div className="absolute top-4 left-4 z-[1000] flex flex-col gap-2 pointer-events-none">
-             <div className="bg-slate-950/90 backdrop-blur rounded-xl p-3 text-white border border-white/10 shadow-2xl">
+             <div className="glass-card rounded-xl p-3 text-slate-900 border border-primary/10 shadow-xl">
                 <div className="flex items-center gap-2 mb-1">
-                   <Target className="w-3 h-3 text-emerald-500" />
-                   <p className="text-[10px] font-black uppercase opacity-60 leading-none">Smart Parcel Locked</p>
+                   <Target className="w-3 h-3 text-primary" />
+                   <p className="text-[10px] font-bold uppercase text-slate-500 leading-none">{tr('pf.smart_parcel_locked')}</p>
                 </div>
-                <p className="text-xs font-bold font-mono text-emerald-400">
-                   {(internalAreaScale || areaScale) ? `${(internalAreaScale || areaScale)?.toFixed(2)} HECTARE PLOT` : 'DETECTING FULL PLOT...'}
+                <p className="text-xs font-bold font-mono text-primary">
+                   {(internalAreaScale || areaScale) ? `${(internalAreaScale || areaScale)?.toFixed(2)} ${tr('pf.hectare')}` : tr('pf.detecting_plot')}
                 </p>
                 <div className="flex items-center gap-2 mt-1">
-                   <div className={`w-1.5 h-1.5 rounded-full ${confidence === 'High' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                   <p className="text-[8px] font-black uppercase text-slate-400">Confidence: {confidence || 'Calculating...'}</p>
+                   <div className={`w-1.5 h-1.5 rounded-full ${confidence === 'High' ? 'bg-primary' : 'bg-amber-500'}`} />
+                   <p className="text-[10px] font-bold text-slate-600">{tr('pf.confidence')}: {confidence ? tr(`pf.${confidence.toLowerCase()}`) : tr('pf.unknown')}</p>
                 </div>
-                <p className="text-[9px] text-slate-500 mt-1 uppercase font-bold">Click map to select adjacent parcel</p>
+                <p className="text-[9px] text-slate-400 mt-1 uppercase font-semibold">{tr('pf.click_map')}</p>
              </div>
           </div>
         </MapContainer>
@@ -607,6 +609,7 @@ const MapFollower: React.FC<{ pos: [number, number], active: boolean }> = ({ pos
 };
 
 const PolygonGridOverlay: React.FC<{ grid: any[], onCellClick?: (cell: any) => void }> = ({ grid, onCellClick }) => {
+  const tr = useTranslation();
   return (
     <>
       {grid.map((cell) => {
@@ -625,15 +628,23 @@ const PolygonGridOverlay: React.FC<{ grid: any[], onCellClick?: (cell: any) => v
             }}
           >
              <Popup>
-                <div className="p-2 min-w-[200px] bg-slate-900 text-white rounded-lg">
-                   <h4 className="font-bold border-b border-white/10 pb-2 mb-2">{cell.id} Analysis</h4>
+                <div className="p-3 min-w-[200px] bg-white text-slate-900 rounded-lg shadow-xl border border-primary/10">
+                   <h4 className="font-bold border-b border-slate-100 pb-2 mb-2 text-sm">{cell.id} {tr('pf.analysis')}</h4>
                    <div className="space-y-2">
-                      <div className="flex justify-between text-xs"><span>Status</span> <span className="font-bold uppercase" style={{ color: cell.color }}>{cell.status}</span></div>
-                      <div className="flex justify-between text-xs"><span>Moisture Stress</span> <span className="font-bold">{cell.totalStress.toFixed(1)}%</span></div>
-                      {cell.needs.pesticide > 0 && <div className="text-[10px] text-purple-400 font-bold uppercase tracking-widest">Fungal Risk Detected</div>}
-                      <div className="mt-3 pt-2 border-t border-white/5 space-y-1">
-                         <div className="flex items-center gap-2 text-blue-400 text-[10px]"><Droplets className="w-3 h-3"/> {cell.needs.water.toFixed(1)}L Water</div>
-                         <div className="flex items-center gap-2 text-emerald-400 text-[10px]"><FlaskConical className="w-3 h-3"/> {cell.needs.n.toFixed(1)}g Nitrogen</div>
+                      <div className="flex justify-between text-xs">
+                         <span className="text-slate-500">Status</span> 
+                         <span className="font-bold uppercase" style={{ color: cell.color }}>
+                            {cell.status === 'Critical' ? tr('pf.critical') : cell.status === 'Moderate' ? tr('pf.moderate') : tr('pf.optimal')}
+                         </span>
+                      </div>
+                      <div className="flex justify-between text-xs">
+                         <span className="text-slate-500">Moisture Stress</span> 
+                         <span className="font-bold text-slate-700">{cell.totalStress.toFixed(1)}%</span>
+                      </div>
+                      {cell.needs.pesticide > 0 && <div className="text-[10px] text-purple-600 font-bold uppercase tracking-widest mt-1">Fungal Risk Detected</div>}
+                      <div className="mt-3 pt-2 border-t border-slate-100 space-y-1.5">
+                         <div className="flex items-center gap-2 text-blue-600 text-[10px] font-medium"><Droplets className="w-3 h-3"/> {cell.needs.water.toFixed(1)}L {tr('pf.liters')}</div>
+                         <div className="flex items-center gap-2 text-primary text-[10px] font-medium"><FlaskConical className="w-3 h-3"/> {cell.needs.n.toFixed(1)}g {tr('pf.nitrogen')}</div>
                       </div>
                    </div>
                 </div>

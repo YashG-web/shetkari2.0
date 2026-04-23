@@ -10,7 +10,7 @@ import { useAppStore } from '@/store/use-app-store';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { MetricCard } from '@/components/MetricCard';
 
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter';
 import { Droplets, ThermometerSun, Wind, Power, AlertTriangle, ArrowRight, CloudRain, Sparkles, Activity, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
@@ -32,7 +32,20 @@ export default function Dashboard() {
     }
   });
 
-  const { isSimulatorOn, language } = useAppStore();
+  const { isSimulatorOn, language, setSelectedCrop } = useAppStore();
+  const [, setLocation] = useLocation();
+
+  const crops = [
+    { id: 'rice', name: 'crop.rice', image: '/images/rice.jpg' },
+    { id: 'wheat', name: 'crop.wheat', image: '/images/wheat.jpg' },
+    { id: 'sunflower', name: 'crop.sunflower', image: '/images/sunflower.jpg' },
+    { id: 'cotton', name: 'crop.cotton', image: '/images/cotton.jpg' },
+  ];
+
+  const handleCropSelect = (cropId: string) => {
+    setSelectedCrop(cropId);
+    setLocation('/recommendation');
+  };
 
   const [hardwareData, setHardwareData] = useState<any>(null);
   const [isHardwareOffline, setIsHardwareOffline] = useState(false);
@@ -296,6 +309,46 @@ export default function Dashboard() {
             colorClass="text-purple-500"
             delay={0.7}
           />
+        </div>
+
+        {/* Crop Recommendation Shortcuts */}
+        <div>
+           <div className="flex items-center gap-3 mb-6">
+              <div className="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center">
+                 <Sparkles className="w-5 h-5 text-orange-600" />
+              </div>
+              <h3 className="text-xl font-display font-bold">{tr('rec.for_crop', language) || "Crop Recommendations"}</h3>
+           </div>
+           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {crops.map(crop => (
+                 <div 
+                    key={crop.id}
+                    onClick={() => handleCropSelect(crop.id)}
+                    className="relative group cursor-pointer rounded-3xl overflow-hidden bg-white border border-primary/10 shadow-sm hover:shadow-[0_0_30px_rgba(255,255,255,1)] hover:-translate-y-2 transition-all duration-500 h-48"
+                 >
+                    <img 
+                       src={crop.image} 
+                       alt={crop.id} 
+                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 opacity-90 group-hover:opacity-100"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
+                    
+                    <div className="absolute bottom-0 left-0 right-0 p-6 z-10 transition-transform duration-500 group-hover:-translate-y-4">
+                       <h4 className="text-white font-bold text-2xl mb-1 drop-shadow-lg">{tr(crop.name, language) || crop.name.split('.')[1]}</h4>
+                    </div>
+
+                    {/* Hover CTA Overlay */}
+                    <div className="absolute inset-0 bg-green-100/30 dark:bg-green-900/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-500 z-20">
+                       <p className="text-green-950 dark:text-green-50 font-black text-center px-4 translate-y-4 group-hover:translate-y-0 transition-transform duration-500 delay-75 drop-shadow-md text-xl">
+                          {tr('action.get_rec_for_crop', language) || "Get Recommendation for"} <br/> {tr(crop.name, language) || crop.name.split('.')[1]}
+                       </p>
+                       <div className="mt-4 w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white group-hover:animate-bounce translate-y-4 group-hover:translate-y-0 transition-transform duration-500 delay-100 shadow-lg">
+                          <ArrowRight className="w-5 h-5" />
+                       </div>
+                    </div>
+                 </div>
+              ))}
+           </div>
         </div>
 
         {/* AI Reasoner Ribbon */}

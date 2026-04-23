@@ -1,4 +1,4 @@
-import { useGetRecommendation, getGetRecommendationQueryKey } from '@workspace/api-client-react';
+import { useGetRecommendation, getGetRecommendationQueryKey, useGetSensorData, getGetSensorDataQueryKey } from '@workspace/api-client-react';
 import { useTranslation } from '@/lib/translations';
 import { useAppStore } from '@/store/use-app-store';
 import { useTTS } from '@/hooks/use-tts';
@@ -14,18 +14,45 @@ import {
   Droplets,
   ThermometerSun,
   Wind,
-  Activity
+  Activity,
+  XCircle
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { motion } from 'framer-motion';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
+import { cropProfiles } from '@/lib/crop-profiles';
 
 export default function Recommendation() {
-  const { language, isSimulatorOn } = useAppStore();
+  const { language, isSimulatorOn, selectedCrop, setSelectedCrop } = useAppStore();
   const tr = useTranslation();
   const { speak, isPlaying } = useTTS();
+
+  const CROP_CONFIG: Record<string, { bgImage: string; name: string; traits: string[] }> = {
+    rice: { 
+       bgImage: '/images/rice-bg.jpg', 
+       name: 'crop.rice',
+       traits: ['rec.rice_water_tolerance', 'rec.rice_disease_watch']
+    },
+    wheat: { 
+       bgImage: '/images/wheat-bg.jpg', 
+       name: 'crop.wheat',
+       traits: ['rec.wheat_drainage_needed', 'rec.wheat_rust_watch']
+    },
+    sunflower: { 
+       bgImage: '/images/sunflower-bg.jpeg', 
+       name: 'crop.sunflower',
+       traits: ['rec.sunflower_drought_tolerant', 'rec.sunflower_soil_prep']
+    },
+    cotton: { 
+       bgImage: '/images/cotton-bg.jpeg', 
+       name: 'crop.cotton',
+       traits: ['rec.cotton_moderate_water', 'rec.cotton_pest_watch']
+    },
+  };
+
+  const cropContext = selectedCrop ? CROP_CONFIG[selectedCrop] : null;
   
   const { data: rec, isLoading, refetch } = useGetRecommendation({
     query: {
@@ -53,7 +80,53 @@ export default function Recommendation() {
     app_desc: "Apply evenly across the field during general maintenance."
   };
 
-  const activeRec = rec || mockRec;
+  const baseRec = rec || mockRec;
+
+  const { data: sensorData } = useGetSensorData({
+    query: {
+      queryKey: getGetSensorDataQueryKey(),
+      refetchInterval: 3000
+    }
+  });
+
+  // 1. Intelligence Layer: Override activeRec based on crop profile
+  const activeRec = useMemo(() => {
+    if (!selectedCrop || !cropProfiles[selectedCrop]) return baseRec;
+
+    const profile = cropProfiles[selectedCrop];
+    const liveMoisture = sensorData?.soilMoisture ?? 50; // default 50 if loading
+    
+    // Deep clone to avoid mutating the original fetched data
+    const enhancedRec = JSON.parse(JSON.stringify(baseRec));
+
+    let cropRisk = "low";
+    let cropIssue = `Soil moisture (${liveMoisture}%) is suitable for ${profile.display_name} cultivation.`;
+
+    if (liveMoisture > profile.optimal_moisture[1]) {
+      cropRisk = profile.overwater_risk;
+      cropIssue = `Excess moisture warning for ${profile.display_name}. Current moisture (${liveMoisture}%) exceeds optimal range max (${profile.optimal_moisture[1]}%).`;
+    } else if (liveMoisture < profile.optimal_moisture[0]) {
+      cropRisk = "high";
+      cropIssue = `Critically low moisture for ${profile.display_name}. Current moisture (${liveMoisture}%) is below optimal range min (${profile.optimal_moisture[0]}%).`;
+    }
+
+    // Enhance the condition strings dynamically
+    enhancedRec.cropCondition = `Recommendation for ${profile.display_name} Crop`;
+    
+    // Only override risk and issue if the crop threshold implies a worse problem
+    if (cropRisk === "high" || (cropRisk === "medium" && enhancedRec.riskLevel === "low")) {
+      enhancedRec.riskLevel = cropRisk;
+    }
+    enhancedRec.identifiedIssue = cropIssue;
+    
+    // Prepend the specific recommendation style
+    enhancedRec.suggestedActions = [
+      profile.recommendation_style,
+      ...enhancedRec.suggestedActions
+    ];
+
+    return enhancedRec;
+  }, [baseRec, selectedCrop, sensorData]);
 
   useEffect(() => {
     if (rec) console.log("Recommendation Data:", rec);
@@ -144,19 +217,49 @@ export default function Recommendation() {
   const RiskIcon = RiskIconMap[activeRec.riskLevel as keyof typeof RiskIconMap] || ShieldCheck;
 
   return (
-    <AppLayout>
-      <div className="max-w-4xl mx-auto space-y-10 pb-20">
+    <div className="relative min-h-screen">
+      {/* Dynamic Background Overlay */}
+      {cropContext && (
+         <div className="fixed inset-0 z-0 pointer-events-none">
+            <img 
+               src={cropContext.bgImage} 
+               alt="Crop Background" 
+               className="w-full h-full object-cover opacity-100"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
+         </div>
+      )}
+
+      <AppLayout>
+        <div className="relative z-10 max-w-4xl mx-auto space-y-10 pb-20">
         
         {/* Header Actions */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
           <div>
             <h1 className="text-4xl font-display font-bold text-foreground">
-              {tr('nav.recommendation', language)}
+              {cropContext 
+                 ? `${tr('rec.for_crop', language) || "Recommendation for"} ${tr(cropContext.name, language) || cropContext.name.split('.')[1]} Crop` 
+                 : tr('nav.recommendation', language)}
             </h1>
             <p className="text-muted-foreground font-medium mt-1">{tr('rec.subtitle', language)}</p>
+            {cropContext && (
+               <button 
+                  onClick={() => setSelectedCrop(null)}
+                  className="mt-3 flex items-center gap-1.5 text-xs font-bold text-red-500 hover:text-red-600 border border-red-200 bg-red-50 px-3 py-1.5 rounded-full transition-colors"
+               >
+                  <XCircle className="w-3.5 h-3.5" />
+                  {tr('action.clear_crop', language) || "Clear Crop Selection"}
+               </button>
+            )}
           </div>
-          <button
-            onClick={handleSpeak}
+          <div className="flex items-center gap-4">
+             {cropContext && (
+                <Badge className="bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 px-4 py-2">
+                   {tr(cropContext.name, language) || cropContext.name.split('.')[1]} Selected
+                </Badge>
+             )}
+             <button
+               onClick={handleSpeak}
             className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-bold transition-all shadow-lg ${
               isPlaying 
                 ? 'bg-primary text-white shadow-primary/30 animate-pulse' 
@@ -166,6 +269,7 @@ export default function Recommendation() {
             <Volume2 className="w-5 h-5" />
             {tr('action.listen', language)}
           </button>
+          </div>
         </div>
 
         <div className="grid gap-10">
@@ -185,13 +289,15 @@ export default function Recommendation() {
             
             <Card className="rounded-[40px] overflow-hidden border-2 border-blue-100 dark:border-blue-900/30 shadow-2xl shadow-blue-500/5">
               <div className="grid md:grid-cols-12">
-                <div className="md:col-span-5 bg-blue-50/50 dark:bg-blue-950/20 p-8 flex flex-col justify-center border-r border-blue-100 dark:border-blue-900/30">
-                  <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-black border mb-6 ${riskStyles[activeRec.riskLevel as keyof typeof riskStyles]}`}>
-                    <RiskIcon className="w-3.5 h-3.5" />
-                    {tr('rec.system_status', language)}{tr(`rec.${activeRec.riskLevel}`, language)}
-
+                <div className="md:col-span-5 bg-gradient-to-br from-primary/5 to-primary/10 dark:from-primary/10 dark:to-primary/5 border-r border-primary/10 p-8 flex flex-col justify-center relative overflow-hidden">
+                  <div className="absolute top-0 right-0 p-4 opacity-10">
+                     <RiskIcon className="w-32 h-32 text-primary" />
                   </div>
-                  <h4 className="text-2xl font-bold leading-tight mb-4">{tr(activeRec.cropCondition, language)}</h4>
+                  <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-black border mb-6 w-fit ${riskStyles[activeRec.riskLevel as keyof typeof riskStyles] || 'bg-slate-100 text-slate-600'}`}>
+                    <RiskIcon className="w-3.5 h-3.5" />
+                    {tr('rec.risk_level', language)}: {tr(`rec.${activeRec.riskLevel}`, language) || activeRec.riskLevel}
+                  </div>
+                  <h4 className="text-2xl font-bold leading-tight mb-4">{tr(activeRec.cropCondition, language) || activeRec.cropCondition}</h4>
                   <div className="flex items-center gap-4 text-muted-foreground">
                      <div className="flex items-center gap-1.5 bg-white dark:bg-slate-900 px-3 py-1 rounded-lg border text-[10px] font-bold">
                         <ThermometerSun className="w-3.5 h-3.5 text-orange-500" /> {tr('rec.temp_stable', language)}
@@ -213,8 +319,15 @@ export default function Recommendation() {
                   <div className="pt-6 border-t border-blue-50">
                     <h5 className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-4">{tr('rec.recommended_actions', language)}</h5>
                     <ul className="grid sm:grid-cols-2 gap-3">
+                      {/* Crop Specific Traits override/addition */}
+                      {cropContext && cropContext.traits.map((trait, idx) => (
+                        <li key={`trait-${idx}`} className="flex items-center gap-3 text-sm font-bold text-primary group/item">
+                          <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
+                          {tr(trait, language) || trait.split('.')[1].replace(/_/g, ' ')}
+                        </li>
+                      ))}
                       {activeRec.suggestedActions.slice(0, 4).map((action, idx) => (
-                        <li key={idx} className="flex items-center gap-3 text-sm font-medium text-muted-foreground group/item">
+                        <li key={`action-${idx}`} className="flex items-center gap-3 text-sm font-medium text-muted-foreground group/item">
                           <CheckCircle2 className="w-4 h-4 text-blue-500 shrink-0" />
                           {tr(action, language)}
                         </li>
@@ -289,5 +402,6 @@ export default function Recommendation() {
         </div>
       </div>
     </AppLayout>
+    </div>
   );
 }
