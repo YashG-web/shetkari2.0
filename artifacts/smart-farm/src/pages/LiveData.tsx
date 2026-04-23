@@ -71,7 +71,7 @@ export default function LiveData() {
           const humVal = getField(['hum', 'humidity', 'h']);
 
           const soilRaw = soilVal !== null ? Number(soilVal) : NaN;
-          const moisture = isNaN(soilRaw) ? 0 : Math.max(0, Math.min(100, Number((100 - (soilRaw / 10.23)).toFixed(1))));
+          const moisture = isNaN(soilRaw) ? 0 : Math.max(0, Math.min(100, Number((soilRaw / 10.23).toFixed(1))));
           
           const processed = {
             ...raw,
@@ -87,7 +87,6 @@ export default function LiveData() {
           setIotData(processed);
 
           // Sync to backend (Skipped in Standalone Frontend Mode)
-          /* 
           if (!isNaN(soilRaw)) {
             axios.post('/api/iot/sync', {
               soilRaw,
@@ -95,7 +94,6 @@ export default function LiveData() {
               humidity: processed.humidity
             }).catch(err => console.error("Sync to backend failed", err));
           }
-          */
         } catch (err: any) {
           setIotError(err.message);
         } finally {

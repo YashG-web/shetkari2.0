@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const ML_SERVICE_URL = process.env.ML_SERVICE_URL || "http://localhost:8000";
-const ESP32_BASE_URL = process.env.ESP32_BASE_URL || "http://10.154.16.104/";
+const ESP32_BASE_URL = process.env.ESP32_BASE_URL || "http://10.154.16.92/";
 
 function map(x: number, in_min: number, in_max: number, out_min: number, out_max: number): number {
   return Number(((x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min).toFixed(2));
@@ -58,14 +58,22 @@ export function getIrrigationAdvisory(data: {
   humidity: number;
   rain: boolean;
 }): string {
-  if (data.rain) return "Rain detected. Natural irrigation sufficient. Keep pumps off.";
-  if (data.soilMoisture < 30) return "Critical: Soil is too dry. Immediate irrigation required.";
-  if (data.soilMoisture < 45 && data.temperature > 35) return "High evaporation alert. Supplemental irrigation recommended.";
-  if (data.humidity > 85) return "High humidity. Reduced transpiration. Water sparingly to avoid fungal risk.";
-  if (data.soilMoisture > 75) return "Soil is well-saturated. Irrigation not required.";
+  if (data.rain) return "🌧️ Heavy rainfall detected. Natural moisture is currently sufficient. Keep the irrigation pumps OFF to prevent waterlogging and root rot.";
   
-  return "Soil moisture is stable. No immediate irrigation needed.";
+  if (data.soilMoisture < 50) {
+    if (data.temperature > 35) return "🔥 CRITICAL ALERT: Extremely low moisture and high heat detected. Evaporation is high. Immediate deep irrigation is required to prevent crop wilting.";
+    return "⚠️ ALERT: Soil moisture has dropped below the 50% threshold. Recommended to start the irrigation pump now.";
+  }
+  
+  if (data.soilMoisture < 55 && data.temperature > 35) return "☀️ High evaporation warning. Although moisture is currently stable, the high heat will deplete it quickly. Consider a short irrigation cycle.";
+  
+  if (data.humidity > 85) return "☁️ High atmospheric humidity detected. This reduces crop transpiration and increases the risk of fungal infections. Water sparingly and ensure good field drainage.";
+  
+  if (data.soilMoisture > 78) return "✅ Optimal moisture levels reached. Soil is well-saturated for the current growth stage. No irrigation required today.";
+  
+  return "🍀 Current environment is stable. Soil moisture and climate parameters are within the healthy growth range. Keep monitoring.";
 }
+
 
 // Shared simulation state for all routes
 export let simulatorConfig = {
@@ -153,7 +161,7 @@ function generateDTInsights(moisture: number, temp: number, humidity: number, ra
   if (rain) insights.push("🌧️ Recent rainfall boosted soil moisture levels.");
   if (temp > 35) insights.push("🔥 High ambient temperature is accelerating evaporation.");
   if (humidity > 80) insights.push("💧 High humidity is reducing transpiration stress.");
-  if (moisture < 30) insights.push("⚠️ Critical: Low moisture detected by sensors.");
+  if (moisture < 50) insights.push("⚠️ Alert: Low moisture detected by sensors.");
   if (temp > 38) insights.push("🔥 Extreme heat detected.");
   
   // Nutrient insights
@@ -324,7 +332,7 @@ export async function runMLInference(forceData?: any) {
         prev_moisture: data.soilMoisture
       });
       mlData.rfPrediction = rfResponse.data.predictedMoisture;
-      mlData.rfOutput = mlData.rfPrediction < 35 ? "ON" : "OFF"; 
+      mlData.rfOutput = mlData.rfPrediction < 50 ? "ON" : "OFF"; 
       controlMoisture = mlData.rfPrediction;
     }
 
@@ -400,7 +408,7 @@ export async function runMLInference(forceData?: any) {
     rain: data.rain
   });
 
-  if (controlMoisture < 35 && !data.rain) {
+  if (controlMoisture < 50 && !data.rain) {
     mlData.pumpStatus = "ON";
     mlData.ruleEngineOutput = "Irrigation system active";
   } else if (data.rain) {
@@ -453,11 +461,13 @@ export let iotStatus: { status: "online" | "offline" | "connecting", lastError?:
     }
     // Background sync removed - now driven by frontend/direct IoT route
     loop();
-  }, 200); 
+  }, 2000); 
 })();
 
 export async function updateStateFromIoT(data: { soilRaw: number, temperature: number, humidity: number }) {
-  const soilMoisturePercent = map(data.soilRaw, 0, 1023, 100, 0);
+  const soilMoisturePercent = map(data.soilRaw, 0, 1023, 0, 100);
+  
+  console.log(`📡 Hardware Sync - Raw Soil: ${data.soilRaw} -> ${soilMoisturePercent}%`);
   
   // Track live data for the simulation loop to use
   liveModeEnabled = true;

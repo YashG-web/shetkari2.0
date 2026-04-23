@@ -4,7 +4,7 @@ import { iotStatus } from "../lib/shared-state";
 
 const router: IRouter = Router();
 
-const ESP32_BASE_URL = process.env.ESP32_BASE_URL || "http://10.154.16.104/";
+const ESP32_BASE_URL = process.env.ESP32_BASE_URL || "http://10.154.16.92/";
 
 function map(x: number, in_min: number, in_max: number, out_min: number, out_max: number): number {
   return Number(((x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min).toFixed(2));
@@ -28,7 +28,7 @@ router.get("/iot/live", async (req, res) => {
     const temperature = data.temp ? parseFloat(data.temp) : null;
     const humidity = data.hum ? parseFloat(data.hum) : null;
 
-    const soilMoisturePercent = soilRaw !== null ? map(soilRaw, 0, 1023, 100, 0) : null;
+    const soilMoisturePercent = soilRaw !== null ? map(soilRaw, 0, 1023, 0, 100) : null;
 
     res.json({
       source: "esp32",

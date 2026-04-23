@@ -4,7 +4,7 @@ pydantic
 numpy
 joblib
 scikit-learn
-tensorflow-cpu
+# tensorflow-cpu (Not yet supported on Python 3.14)
 python-multipart
 gunicorn
 uvicorn

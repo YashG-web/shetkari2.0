@@ -85,8 +85,8 @@ export default function Dashboard() {
           const humVal = getField(['hum', 'humidity', 'h']);
 
           const soilRaw = soilVal !== null ? Number(soilVal) : NaN;
-          // Typical mapping: 1023 (dry) -> 0%, 0 (wet) -> 100%
-          const moisture = isNaN(soilRaw) ? 0 : Math.max(0, Math.min(100, Number((100 - (soilRaw / 10.23)).toFixed(1))));
+          // Updated mapping to match backend: 0 (dry) -> 0%, 1023 (wet) -> 100%
+          const moisture = isNaN(soilRaw) ? 0 : Math.max(0, Math.min(100, Number((soilRaw / 10.23).toFixed(1))));
           
           const temperature = tempVal !== null ? parseFloat(tempVal) : 0;
           const humidity = humVal !== null ? parseFloat(humVal) : 0;
@@ -105,7 +105,6 @@ export default function Dashboard() {
           setHardwareData(processed);
 
           // Sync to backend (Skipped in Standalone Frontend Mode)
-          /* 
           if (!isNaN(soilRaw)) {
             axios.post('/api/iot/sync', {
               soilRaw,
@@ -113,7 +112,6 @@ export default function Dashboard() {
               humidity
             }).catch(err => console.error("Sync to backend failed", err));
           }
-          */
 
         } catch (err) {
           console.error("Hardware network fetch failed", err);

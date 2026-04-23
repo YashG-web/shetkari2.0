@@ -34,10 +34,30 @@ export default function Recommendation() {
     }
   });
 
+  const mockRec = {
+    cropCondition: "status.optimum",
+    riskLevel: "low",
+    identifiedIssue: "Soil moisture is stable. No immediate irrigation needed.",
+    suggestedActions: [
+      "status.monitor_moisture",
+      "status.maintain_current_schedule"
+    ],
+    fertilizerRecommendation: {
+      name: "Organic Compost",
+      npkRatio: "1-1-1",
+      buyLink: "https://www.google.com/search?q=buy+organic+compost",
+      platform: "amazon",
+      usageInfo: "Apply 2kg per square meter for optimal soil health."
+    },
+    app_strategy: "rec.app_strategy",
+    app_desc: "Apply evenly across the field during general maintenance."
+  };
+
+  const activeRec = rec || mockRec;
+
   useEffect(() => {
     if (rec) console.log("Recommendation Data:", rec);
   }, [rec]);
-
 
   const translateDynamic = (text: string) => {
     if (!text) return text;
@@ -61,19 +81,25 @@ export default function Recommendation() {
           const response = await axios.get('http://10.154.16.92/', { timeout: 3000 });
           const raw = typeof response.data === 'string' ? JSON.parse(response.data) : response.data;
           
-          const regex = new RegExp(`"?soil"?\\s*[:=]\\s*"?([0-9.]+)"?`, 'i');
-          const match = JSON.stringify(raw).match(regex);
-          const soilRaw = match ? Number(match[1]) : (raw.soil ? Number(raw.soil) : NaN);
+          const regexSoil = new RegExp(`"?soil"?\\s*[:=]\\s*"?([0-9.]+)"?`, 'i');
+          const matchSoil = JSON.stringify(raw).match(regexSoil);
+          const soilRaw = matchSoil ? Number(matchSoil[1]) : (raw.soil !== undefined ? Number(raw.soil) : 500);
+          
+          const regexTemp = new RegExp(`"?temp"?\\s*[:=]\\s*"?([0-9.]+)"?`, 'i');
+          const matchTemp = JSON.stringify(raw).match(regexTemp);
+          const temperature = matchTemp ? Number(matchTemp[1]) : (raw.temp !== undefined ? Number(raw.temp) : 25);
+
+          const regexHum = new RegExp(`"?hum"?\\s*[:=]\\s*"?([0-9.]+)"?`, 'i');
+          const matchHum = JSON.stringify(raw).match(regexHum);
+          const humidity = matchHum ? Number(matchHum[1]) : (raw.hum !== undefined ? Number(raw.hum) : 60);
           
           if (!isNaN(soilRaw)) {
-            /* Backend sync skipped in Standalone Mode
-            await axios.post('/api/iot/sync', {
-              soilRaw,
-              temperature: parseFloat(raw.temp || raw.temperature || 0),
-              humidity: parseFloat(raw.hum || raw.humidity || 0)
+            await axios.post('/api/iot/sync', { 
+              soilRaw, 
+              temperature, 
+              humidity 
             });
-            */
-            // refetch(); // No need to refetch in standalone
+            console.log(`📡 IoT Sync: SoilRaw=${soilRaw}, Temp=${temperature}, Hum=${humidity} -> Mapping Corrected.`);
           }
         } catch (err) {
           console.error("Recommendation page sync failed", err);
@@ -86,24 +112,6 @@ export default function Recommendation() {
     return () => clearInterval(interval);
   }, [isSimulatorOn, refetch]);
 
-  const handleSpeak = () => {
-    if (!activeRec) return;
-    const text = `${tr(activeRec.cropCondition, language)}. ${tr('rec.suggested_actions', language)}: ${tr(activeRec.suggestedActions[0], language)}`;
-    speak(text);
-  };
-
-  const riskStyles = {
-    low: "bg-green-100 text-green-800 border-green-200",
-    medium: "bg-yellow-100 text-yellow-800 border-yellow-200",
-    high: "bg-red-100 text-red-800 border-red-200"
-  } as const;
-
-  const RiskIcon = {
-    low: ShieldCheck,
-    medium: AlertTriangle,
-    high: AlertOctagon
-  }[activeRec?.riskLevel || 'low'];
-
   if (isLoading) {
     return (
       <AppLayout>
@@ -114,28 +122,26 @@ export default function Recommendation() {
     );
   }
 
-  const mockRec = {
-    cropCondition: "status.optimum",
-    riskLevel: "low",
-    identifiedIssue: "Soil moisture is stable. No immediate irrigation needed.",
-    suggestedActions: [
-      "status.monitor_moisture",
-      "status.maintain_current_schedule"
-    ],
-    fertilizerRecommendation: {
-      name: "Organic Compost",
-      npkRatio: "1-1-1",
-      buyLink: "https://www.google.com/search?q=buy+organic+compost",
-      platform: "amazon",
-      usageInfo: "Apply 2kg per square meter for optimal soil health."
-    },
-    app_strategy: "rec.app_strategy",
-    app_desc: "Apply evenly across the field during general maintenance."
+  if (!activeRec) return null;
+
+  const handleSpeak = () => {
+    const text = `${tr(activeRec.cropCondition, language)}. ${tr('rec.suggested_actions', language)}: ${tr(activeRec.suggestedActions[0], language)}`;
+    speak(text);
   };
 
-  const activeRec = rec || mockRec;
+  const riskStyles = {
+    low: "bg-green-100 text-green-800 border-green-200",
+    medium: "bg-yellow-100 text-yellow-800 border-yellow-200",
+    high: "bg-red-100 text-red-800 border-red-200"
+  } as const;
 
-  if (!activeRec) return null;
+  const RiskIconMap = {
+    low: ShieldCheck,
+    medium: AlertTriangle,
+    high: AlertOctagon
+  };
+
+  const RiskIcon = RiskIconMap[activeRec.riskLevel as keyof typeof RiskIconMap] || ShieldCheck;
 
   return (
     <AppLayout>
@@ -158,10 +164,6 @@ export default function Recommendation() {
             }`}
           >
             <Volume2 className="w-5 h-5" />
-            {tr('action.listen', language)}
-          </button>
-        </div>
-
             {tr('action.listen', language)}
           </button>
         </div>

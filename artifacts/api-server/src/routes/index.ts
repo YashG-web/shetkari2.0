@@ -7,6 +7,8 @@ import simulatorRouter from "./simulator";
 import predictRouter from "./predict";
 import growthStageRouter from "./growth-stage";
 import iotRouter from "./iot";
+import precisionFarmingRouter from "./precision-farming";
+import whatsappWebhookRouter from "./whatsapp-webhook";
 
 const router: IRouter = Router();
 
@@ -18,5 +20,7 @@ router.use(simulatorRouter);
 router.use(predictRouter);
 router.use(growthStageRouter);
 router.use(iotRouter);
+router.use(precisionFarmingRouter);
+router.use(whatsappWebhookRouter);
 
 export default router;

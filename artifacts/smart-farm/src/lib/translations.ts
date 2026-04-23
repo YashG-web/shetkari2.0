@@ -9,6 +9,7 @@ export const t: TranslationMap = {
   "nav.recommendation": { en: "Recommendation", hi: "सिफारिश", mr: "शिफारस" },
   "nav.fertilizers": { en: "Fertilizers", hi: "उर्वरक", mr: "खते" },
   "nav.crop_analysis": { en: "Crop Analysis", hi: "फसल विश्लेषण", mr: "पीक विश्लेषण" },
+  "nav.precision_farming": { en: "Precision Farming", hi: "सटीक खेती", mr: "अचूक शेती" },
   "nav.simulator": { en: "Simulator", hi: "सिम्युलेटर", mr: "सिम्युलेटर" },
   "nav.support": { en: "Help & Support", hi: "सहायता और समर्थन", mr: "मदत आणि समर्थन" },
   "nav.live_mode": { en: "Live IoT Mode", hi: "लाइव IoT मोड", mr: "थेट IoT मोड" },

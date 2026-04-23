@@ -51,6 +51,7 @@ export function Navbar() {
     { path: '/recommendation', label: tr('nav.recommendation', language) },
     { path: '/fertilizer', label: tr('nav.fertilizers', language) },
     { path: '/crop-analysis', label: tr('nav.crop_analysis', language) },
+    { path: '/precision-farming', label: tr('nav.precision_farming', language) },
     { path: '/simulator', label: tr('nav.simulator', language) },
     { path: '/support', label: tr('nav.support', language) },
   ];

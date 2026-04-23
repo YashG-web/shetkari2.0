@@ -6,47 +6,56 @@ const { MessagingResponse } = require('twilio').twiml;
 const app = express();
 app.use(bodyParser.urlencoded({ extended: false }));
 
-// Dummy data for the demo
-const FARM_DATA = {
-  soil: "Soil moisture: 24%\nStatus: Slightly Low",
-  temp: "Temperature: 31°C\nStatus: Warm",
-  humidity: "Humidity: 68%\nStatus: Optimal",
-  predict: "Prediction: Irrigation may be needed tomorrow based on rapid moisture depletion.",
-  summary: "Farm conditions are stable today. Temperature is slightly high but soil moisture is within acceptable limits for the next 24 hours.",
-  help: "Welcome to Shetkari AI Support!\nCommands:\n- 'soil': Check moisture\n- 'temp': Check temperature\n- 'humidity': Check humidity\n- 'predict': AI Forecast\n- 'summary': Daily Overview\n\nContact support: +91 XXXXX XXXXX"
-};
+const API_BASE_URL = process.env.API_BASE_URL || "http://localhost:5007/api";
+
+async function getLatestStats() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/simulator/latest`);
+    if (!response.ok) throw new Error("API Offline");
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching from API:", error);
+    return null;
+  }
+}
 
 // POST route for Twilio Webhook
-app.post('/webhook/whatsapp', (req, res) => {
+app.post('/webhook/whatsapp', async (req, res) => {
   const incomingMsg = req.body.Body.toLowerCase().trim();
   const twiml = new MessagingResponse();
 
   console.log(`Received message: ${incomingMsg}`);
 
+  const data = await getLatestStats();
   let reply = "";
 
-  // Handle commands
-  if (incomingMsg.includes('soil')) {
-    // REAL INTEGRATION: Fetch from ESP32 or shared-state API
-    // Example: const data = await fetch('http://localhost:5007/api/sensors');
-    reply = FARM_DATA.soil;
+  if (!data) {
+    reply = "⚠️ Error: Unable to connect to farm sensors. Please try again later.";
+  } else if (incomingMsg.includes('soil')) {
+    reply = `💧 Soil Moisture: ${data.soilMoisture}%\nStatus: ${data.soilMoisture < 50 ? 'Low' : 'Optimal'}`;
   } 
   else if (incomingMsg.includes('temp')) {
-    reply = FARM_DATA.temp;
+    reply = `🌡️ Temperature: ${data.temperature}°C\nStatus: ${data.temperature > 35 ? 'High (Heat Stress Risk)' : 'Stable'}`;
   }
   else if (incomingMsg.includes('humidity')) {
-    reply = FARM_DATA.humidity;
+    reply = `🌬️ Humidity: ${data.humidity}%\nStatus: ${data.humidity > 80 ? 'High' : 'Normal'}`;
   }
-  else if (incomingMsg.includes('predict')) {
-    // REAL INTEGRATION: Call ML service/predict endpoint
-    reply = FARM_DATA.predict;
+  else if (incomingMsg.includes('predict') || incomingMsg.includes('irrigation')) {
+    reply = `🧠 AI Forecast:\n${data.irrigationAdvisory}\n\nPump Status: ${data.pumpStatus}`;
   }
-  else if (incomingMsg.includes('summary')) {
-    reply = FARM_DATA.summary;
+  else if (incomingMsg.includes('summary') || incomingMsg.includes('all')) {
+    reply = `🚜 *Shetkari Farm Summary*\n` +
+            `Timestamp: ${new Date(data.timestamp).toLocaleTimeString()}\n` +
+            `------------------\n` +
+            `💧 Moisture: ${data.soilMoisture}%\n` +
+            `🌡️ Temp: ${data.temperature}°C\n` +
+            `🌬️ Humidity: ${data.humidity}%\n` +
+            `🌱 NPK: ${data.nitrogen}/${data.phosphorus}/${data.potassium}\n` +
+            `------------------\n` +
+            `✨ *AI Recommendation:*\n${data.fertilizerRecommendation}`;
   }
   else {
-    // Default to help message
-    reply = FARM_DATA.help;
+    reply = "Welcome to Shetkari AI Support! 🌿\n\nCommands:\n- 'soil': Check moisture\n- 'temp': Check temperature\n- 'humidity': Check humidity\n- 'predict': AI Forecast\n- 'summary': Daily Overview\n\nType any command to get started.";
   }
 
   twiml.message(reply);
@@ -60,3 +69,4 @@ app.listen(PORT, () => {
   console.log(`Shetkari WhatsApp Bot listening on port ${PORT}`);
   console.log(`Local Webhook URL: http://localhost:${PORT}/webhook/whatsapp`);
 });
+

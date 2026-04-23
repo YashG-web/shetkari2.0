@@ -9,6 +9,8 @@ import LiveData from "@/pages/LiveData";
 import Recommendation from "@/pages/Recommendation";
 import Fertilizers from "@/pages/Fertilizers";
 import CropAnalysis from "@/pages/CropAnalysis";
+import PrecisionFarming from "@/pages/PrecisionFarming";
+import PrecisionFarmingSatellite from "@/pages/PrecisionFarmingSatellite";
 import Simulator from "@/pages/Simulator";
 import Support from "@/pages/Support";
 import NotFound from "@/pages/not-found";
@@ -30,6 +32,8 @@ function Router() {
       <Route path="/recommendation" component={Recommendation} />
       <Route path="/fertilizer" component={Fertilizers} />
       <Route path="/crop-analysis" component={CropAnalysis} />
+      <Route path="/precision-farming" component={PrecisionFarming} />
+      <Route path="/precision-farming-satellite" component={PrecisionFarmingSatellite} />
       <Route path="/simulator" component={Simulator} />
       <Route path="/support" component={Support} />
       <Route component={NotFound} />

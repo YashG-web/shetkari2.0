@@ -153,8 +153,8 @@ router.get("/recommendation", async (_req, res) => {
   let irrigationAdvisory = "Soil moisture is stable. No immediate irrigation needed.";
   if (rain) {
     irrigationAdvisory = "Rain detected. Natural irrigation sufficient. Keep pumps off.";
-  } else if (soilMoisture < 35) {
-    irrigationAdvisory = "Critical: Soil is too dry. Immediate irrigation required.";
+  } else if (soilMoisture < 50) {
+    irrigationAdvisory = "Low irrigation: Soil is too dry. Immediate irrigation required.";
   } else if (temperature > 38) {
     irrigationAdvisory = "High evaporation alert. Supplemental irrigation recommended.";
   } else if (humidity > 85) {
@@ -164,10 +164,10 @@ router.get("/recommendation", async (_req, res) => {
   }
 
 
-  if (soilMoisture < 35) {
+  if (soilMoisture < 50) {
     rec = {
-      cropCondition: "Poor - Crop shows signs of severe water stress" + predictionSuffix,
-      identifiedIssue: "Critically low soil moisture detected",
+      cropCondition: "Low - Soil moisture is below 50%" + predictionSuffix,
+      identifiedIssue: "Low irrigation level detected",
       riskLevel: "high",
       suggestedActions: [
         "Immediately start irrigation cycle",
@@ -220,8 +220,8 @@ router.get("/recommendation", async (_req, res) => {
 
   } else {
     rec = {
-      cropCondition: "Good - Optimal growing conditions" + predictionSuffix,
-      identifiedIssue: "No significant issues detected",
+      cropCondition: "Good - Optimal soil moisture above 50%" + predictionSuffix,
+      identifiedIssue: "Good irrigation level",
       riskLevel: "low",
       suggestedActions: [
         "Maintain current management practices",
