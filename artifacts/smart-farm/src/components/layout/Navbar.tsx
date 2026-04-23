@@ -47,7 +47,6 @@ export function Navbar() {
 
   const navLinks = [
     { path: '/', label: tr('nav.dashboard', language) },
-    { path: '/live-data', label: tr('nav.live_data', language) },
     { path: '/recommendation', label: tr('nav.recommendation', language) },
     { path: '/fertilizer', label: tr('nav.fertilizers', language) },
     { path: '/crop-analysis', label: tr('nav.crop_analysis', language) },

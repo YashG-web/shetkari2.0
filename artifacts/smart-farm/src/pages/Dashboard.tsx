@@ -1,6 +1,6 @@
-import { 
-  useGetSensorData, 
-  useGetWeather, 
+import {
+  useGetSensorData,
+  useGetWeather,
   usePredictMoisture,
   getGetSensorDataQueryKey,
   getGetWeatherQueryKey
@@ -9,20 +9,20 @@ import { useTranslation } from '@/lib/translations';
 import { useAppStore } from '@/store/use-app-store';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { MetricCard } from '@/components/MetricCard';
-import { AnalyticsChart } from '@/components/AnalyticsChart';
+
 import { Link } from 'wouter';
-import { Droplets, ThermometerSun, Wind, Power, AlertTriangle, ArrowRight, CloudRain, Sparkles, Sprout, Activity, Zap } from 'lucide-react';
+import { Droplets, ThermometerSun, Wind, Power, AlertTriangle, ArrowRight, CloudRain, Sparkles, Activity, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 
 export default function Dashboard() {
   const tr = useTranslation();
-  
+
   const { data: sensorData, isLoading: isLoadingSensor } = useGetSensorData({
-    query: { 
+    query: {
       queryKey: getGetSensorDataQueryKey(),
-      refetchInterval: 3000 
+      refetchInterval: 3000
     }
   });
 
@@ -45,7 +45,7 @@ export default function Dashboard() {
         try {
           const response = await axios.get('http://10.154.16.92/', { timeout: 3000 });
           setIsHardwareOffline(false);
-          
+
           let raw = response.data;
           console.log("🔍 [IOT DEBUG] Dashboard Raw Response:", raw);
 
@@ -68,7 +68,7 @@ export default function Dashboard() {
               };
             }
           }
-          
+
           if (!raw || typeof raw !== 'object') return;
 
           // Aggressive field detection 
@@ -87,7 +87,7 @@ export default function Dashboard() {
           const soilRaw = soilVal !== null ? Number(soilVal) : NaN;
           // Updated mapping to match backend: 0 (dry) -> 0%, 1023 (wet) -> 100%
           const moisture = isNaN(soilRaw) ? 0 : Math.max(0, Math.min(100, Number((soilRaw / 10.23).toFixed(1))));
-          
+
           const temperature = tempVal !== null ? parseFloat(tempVal) : 0;
           const humidity = humVal !== null ? parseFloat(humVal) : 0;
 
@@ -140,12 +140,12 @@ export default function Dashboard() {
     dtInsights: ['insight.moisture_stable', 'insight.nutrients_balanced']
   };
 
-  const activeSensorData = isSimulatorOn 
-    ? (sensorData || mockSensorData) 
+  const activeSensorData = isSimulatorOn
+    ? (sensorData || mockSensorData)
     : {
-        ...(sensorData || mockSensorData), // Start with all simulated fields
-        ...hardwareData,                 // Override with Live Sensors
-      };
+      ...(sensorData || mockSensorData), // Start with all simulated fields
+      ...hardwareData,                 // Override with Live Sensors
+    };
 
   const isGlobalLoading = isSimulatorOn ? isLoadingSensor : (!hardwareData && !isHardwareOffline);
   const isOffline = !isSimulatorOn && isHardwareOffline;
@@ -153,22 +153,22 @@ export default function Dashboard() {
   return (
     <AppLayout>
       <div className="space-y-8">
-        
+
         {/* Hero Banner */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}
           className="relative rounded-3xl overflow-hidden bg-primary/10 border border-primary/20"
         >
           <div className="absolute inset-0 z-0">
-            <img 
-              src="https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=1920&q=80&fit=crop" 
-              alt="Farm Hero" 
+            <img
+              src="https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=1920&q=80&fit=crop"
+              alt="Farm Hero"
               className="w-full h-full object-cover opacity-20 mix-blend-overlay"
             />
             <div className="absolute inset-0 bg-gradient-to-r from-primary/90 to-primary/40 mix-blend-multiply" />
           </div>
-          
+
           <div className="relative z-10 p-8 md:p-12 flex flex-col md:flex-row items-center justify-between gap-8">
             <div className="text-primary-foreground max-w-2xl">
               <h1 className="text-4xl md:text-5xl font-display font-bold mb-4 text-balance">
@@ -177,16 +177,16 @@ export default function Dashboard() {
               <p className="text-primary-foreground/80 text-lg md:text-xl font-medium mb-8">
                 {tr('dash.subtitle', language)}
               </p>
-              
-              <Link 
-                href="/recommendation" 
+
+              <Link
+                href="/recommendation"
                 className="inline-flex items-center gap-2 px-8 py-4 bg-white text-primary rounded-2xl font-bold hover:bg-opacity-90 hover:scale-105 active:scale-95 transition-all shadow-xl shadow-black/10"
               >
                 {tr('action.get_recommendation')}
                 <ArrowRight className="w-5 h-5" />
               </Link>
             </div>
-            
+
             {/* Weather Widget */}
             {!isLoadingWeather && weatherData && (
               <div className="glass-card rounded-2xl p-6 min-w-[280px]">
@@ -211,18 +211,17 @@ export default function Dashboard() {
               </div>
             )}
           </div>
-          
+
           {/* Mode Indicator Overlay */}
           <div className="absolute top-4 right-4 flex gap-2">
             {!isSimulatorOn && (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
-                className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-black shadow-lg backdrop-blur-md border ${
-                  isOffline 
-                    ? 'bg-red-500/90 text-white border-red-400' 
+                className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-black shadow-lg backdrop-blur-md border ${isOffline
+                    ? 'bg-red-500/90 text-white border-red-400'
                     : 'bg-emerald-500/90 text-white border-emerald-400'
-                }`}
+                  }`}
               >
                 <div className={`w-2 h-2 rounded-full ${isOffline ? 'bg-white animate-pulse' : 'bg-white shadow-[0_0_8px_white]'}`} />
                 {isOffline ? tr('dash.esp_offline', language) : tr('dash.live_data', language)}
@@ -273,31 +272,13 @@ export default function Dashboard() {
           />
         </div>
 
-        <div className="grid grid-cols-1 gap-6">
-          <MetricCard
-            title={tr('dash.ai_fert_rec', language)}
-            value={isGlobalLoading ? '-' : tr(activeSensorData?.fertilizerRecommendation ?? '-', language)}
-            icon={Sprout}
-            colorClass="text-green-600"
-            delay={0.6}
-            statusMessage={isGlobalLoading ? undefined : `${tr('status.source', language)}: ${tr(activeSensorData?.fertilizerSource ?? 'Fallback', language)}`}
-          />
-        </div>
 
-        {/* Analytics Section */}
-        <AnalyticsChart 
-          currentData={{
-            soilMoisture: activeSensorData?.soilMoisture || 0,
-            nitrogen: activeSensorData?.nitrogen || 0,
-            phosphorus: activeSensorData?.phosphorus || 0,
-            potassium: activeSensorData?.potassium || 0,
-            tsForecastData: (activeSensorData as any)?.tsForecastData
-          }} 
-        />
+
+
 
         {/* AI Reasoner Ribbon */}
         {(activeSensorData as any)?.dtInsights && (activeSensorData as any).dtInsights.length > 0 && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             className="bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl p-4 border border-indigo-100 dark:border-indigo-900/50 flex flex-col md:flex-row items-center justify-between gap-4"
@@ -306,7 +287,7 @@ export default function Dashboard() {
               <div className="p-2 bg-indigo-600 text-white rounded-lg">
                 <Sparkles className="w-4 h-4" />
               </div>
-              <span className="text-sm font-bold text-indigo-900 dark:text-indigo-200 uppercase tracking-tight">{tr('section.ai_reasoner', language)}</span>
+              <span className="text-sm font-bold text-indigo-900 dark:text-indigo-200 uppercase tracking-tight">{tr('section.ai_reasoner', language)} (Decision Tree) 🔥</span>
             </div>
             <div className="flex flex-wrap gap-2 justify-center">
               {(activeSensorData as any).dtInsights.map((insight: string, i: number) => (
@@ -319,7 +300,7 @@ export default function Dashboard() {
         )}
 
       </div>
-      
+
     </AppLayout>
   );
 }

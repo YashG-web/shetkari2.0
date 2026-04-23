@@ -5,7 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 
 // Pages
 import Dashboard from "@/pages/Dashboard";
-import LiveData from "@/pages/LiveData";
+
 import Recommendation from "@/pages/Recommendation";
 import Fertilizers from "@/pages/Fertilizers";
 import CropAnalysis from "@/pages/CropAnalysis";
@@ -28,7 +28,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Dashboard} />
-      <Route path="/live-data" component={LiveData} />
+
       <Route path="/recommendation" component={Recommendation} />
       <Route path="/fertilizer" component={Fertilizers} />
       <Route path="/crop-analysis" component={CropAnalysis} />
