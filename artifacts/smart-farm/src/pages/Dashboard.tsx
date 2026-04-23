@@ -270,11 +270,33 @@ export default function Dashboard() {
             delay={0.4}
             statusMessage={isOffline ? tr('sensor.esp32_offline', language) : (activeSensorData as any)?.ruleEngineOutput}
           />
+        </div>        {/* Soil Nutrients Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          <MetricCard
+            title={tr('live.nitrogen', language)}
+            value={isGlobalLoading ? '-' : activeSensorData?.nitrogen ?? '-'}
+            unit="ppm"
+            icon={Activity}
+            colorClass="text-blue-500"
+            delay={0.5}
+          />
+          <MetricCard
+            title={tr('live.phosphorus', language)}
+            value={isGlobalLoading ? '-' : activeSensorData?.phosphorus ?? '-'}
+            unit="ppm"
+            icon={Activity}
+            colorClass="text-yellow-500"
+            delay={0.6}
+          />
+          <MetricCard
+            title={tr('live.potassium', language)}
+            value={isGlobalLoading ? '-' : activeSensorData?.potassium ?? '-'}
+            unit="ppm"
+            icon={Activity}
+            colorClass="text-purple-500"
+            delay={0.7}
+          />
         </div>
-
-
-
-
 
         {/* AI Reasoner Ribbon */}
         {(activeSensorData as any)?.dtInsights && (activeSensorData as any).dtInsights.length > 0 && (
