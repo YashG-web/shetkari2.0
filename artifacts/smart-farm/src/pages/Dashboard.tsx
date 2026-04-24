@@ -56,7 +56,7 @@ export default function Dashboard() {
     if (!isSimulatorOn) {
       const fetchHardware = async () => {
         try {
-          const response = await axios.get('http://10.154.16.92/', { timeout: 3000 });
+          const response = await axios.get('http://10.15.208.92/', { timeout: 3000 });
           setIsHardwareOffline(false);
 
           let raw = response.data;

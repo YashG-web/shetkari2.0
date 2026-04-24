@@ -151,7 +151,7 @@ export default function Recommendation() {
     if (!isSimulatorOn) {
       const fetchAndSync = async () => {
         try {
-          const response = await axios.get('http://10.154.16.92/', { timeout: 3000 });
+          const response = await axios.get('http://10.15.208.92/', { timeout: 3000 });
           const raw = typeof response.data === 'string' ? JSON.parse(response.data) : response.data;
           
           const regexSoil = new RegExp(`"?soil"?\\s*[:=]\\s*"?([0-9.]+)"?`, 'i');
